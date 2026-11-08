@@ -1,6 +1,6 @@
 @ClientPulse.Api_HostAddress = http://localhost:5114
 
-GET {{ClientPulse.Api_HostAddress}}/weatherforecast/
+GET {{ClientPulse.Api_HostAddress}}/api/clients
 Accept: application/json
 
 ###
