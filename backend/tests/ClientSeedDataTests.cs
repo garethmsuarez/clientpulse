@@ -38,6 +38,7 @@ public class ClientSeedDataTests
             Assert.True(client.Id > 0);
             Assert.False(string.IsNullOrWhiteSpace(client.Name));
             Assert.False(string.IsNullOrWhiteSpace(client.Industry));
+            Assert.False(string.IsNullOrWhiteSpace(client.AccountOwner));
         });
     }
 }
