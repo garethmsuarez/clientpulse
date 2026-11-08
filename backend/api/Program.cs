@@ -1,4 +1,6 @@
+using System.Text.Json.Serialization;
 using ClientPulse.Api.Clients;
+using ClientPulse.Api.Communications;
 using ClientPulse.Api.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -6,6 +8,10 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
+
+// Serialize enums such as CommunicationType by name ("Email") rather than number.
+builder.Services.ConfigureHttpJsonOptions(options =>
+    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 
 var connectionString = builder.Configuration.GetConnectionString("ClientPulse")
     ?? throw new InvalidOperationException("Connection string 'ClientPulse' is not configured.");
@@ -23,5 +29,6 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
 app.MapClientEndpoints();
+app.MapCommunicationEndpoints();
 
 app.Run();

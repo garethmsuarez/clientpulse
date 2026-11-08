@@ -4,3 +4,32 @@ GET {{ClientPulse.Api_HostAddress}}/api/clients
 Accept: application/json
 
 ###
+
+GET {{ClientPulse.Api_HostAddress}}/api/clients/1
+Accept: application/json
+
+###
+
+# Unknown client: 404 problem details
+GET {{ClientPulse.Api_HostAddress}}/api/clients/999
+Accept: application/json
+
+###
+
+GET {{ClientPulse.Api_HostAddress}}/api/clients/1/communications
+Accept: application/json
+
+###
+
+# Synthetic example only
+POST {{ClientPulse.Api_HostAddress}}/api/clients/1/communications
+Content-Type: application/json
+
+{
+  "type": "Email",
+  "occurredAt": "2026-11-02T15:00:00Z",
+  "subject": "Synthetic follow-up",
+  "body": "Synthetic body text for local testing."
+}
+
+###
