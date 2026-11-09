@@ -1,7 +1,7 @@
 # Current status
 
-- Milestones 1–5 are complete.
-- Next: milestone 6, frontend styling cleanup.
+- Milestones 1–7 are complete.
+- Next: see Future (demo reliability, tests, and presentation preparation).
 - API: `GET /api/clients`, `GET /api/clients/{id}`,
   `GET`/`POST /api/clients/{clientId}/communications`, and
   assessments under `/api/clients/{clientId}/assessments`: `POST` (analyze),
@@ -22,9 +22,12 @@
   latest assessment only; the original analyzer output is never changed.
   Reviewer names are self-reported and unverified. This is a review
   history, not a verified audit trail.
-- Frontend: React with `react-router`: client list, client detail, an
-  add-communication form, an assessment panel with evidence links and a
-  review form, and a read-only assessment history.
+- Frontend: React with `react-router`, styled with a phase2online.com-inspired
+  palette (light theme). The client view is split into nested routes under
+  `/clients/:clientId`: Overview (landing summary), Assessment (analyze,
+  latest result, expandable review form), Communications (list; evidence
+  links highlight the cited item), Add communication (own page), History
+  (list), and a read-only page per past assessment.
 - Database: EF Core migrations `InitialCreate`,
   `AddAccountOwnerAndCommunications`, `AddAssessments`,
   `AddAssessmentReviews`, and `AddAssessmentProvenance` with synthetic
@@ -33,7 +36,9 @@
 - Tests: validation and model unit tests, plus endpoint tests against a
   separate `clientpulse_tests` database on the Compose PostgreSQL (recreated
   on each run; requires `docker compose up -d postgres`). Tests always use
-  the fixture analyzer or fakes and never call the live API.
+  the fixture analyzer or fakes and never call the live API. Frontend tests
+  use Vitest and React Testing Library with a stubbed `fetch`
+  (`npm --prefix frontend run test`); they never call the API.
 
 # Using the Anthropic analyzer (optional)
 
@@ -66,10 +71,10 @@ retries (2), plus a 120 s overall deadline. Failures return 502
    - Evaluate Claude Sonnet 5.5 against the synthetic scenarios before
      considering Opus.
 6. Clean up the styling of the frontend, ideally with a color scheme similar
-   to https://phase2online.com.
+   to https://phase2online.com. (complete)
 7. Break up the client view into smaller pieces. It currently shows a lot of
    information on one page, with multiple sections for entering different
-   things.
+   things. (complete)
 
 # Future
 
