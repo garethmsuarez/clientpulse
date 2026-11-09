@@ -51,6 +51,9 @@ public class ClientPulseDbContext(DbContextOptions<ClientPulseDbContext> options
         {
             assessment.Property(a => a.Source).HasConversion<string>().HasMaxLength(20);
             assessment.Property(a => a.FixtureName).HasMaxLength(AssessmentOutputRules.FixtureNameMaxLength);
+            assessment.Property(a => a.RequestedModel).HasMaxLength(AssessmentOutputRules.ModelNameMaxLength);
+            assessment.Property(a => a.ResponseModel).HasMaxLength(AssessmentOutputRules.ModelNameMaxLength);
+            assessment.Property(a => a.Effort).HasMaxLength(10);
             assessment.Property(a => a.Summary).HasColumnType("text");
             assessment.Property(a => a.AttentionLevel).HasConversion<string>().HasMaxLength(10);
             assessment.Property(a => a.InputFingerprint).HasMaxLength(64).IsFixedLength();

@@ -3,6 +3,8 @@ import type { CommunicationType } from './communications.ts'
 
 export type AttentionLevel = 'Low' | 'Medium' | 'High'
 
+export type AnalysisSource = 'Fixture' | 'Anthropic'
+
 export const attentionLevels: AttentionLevel[] = ['Low', 'Medium', 'High']
 
 export type ReviewDecision = 'Accepted' | 'Adjusted' | 'Rejected'
@@ -49,10 +51,14 @@ export type Assessment = {
   id: number
   clientId: number
   createdAt: string
-  source: 'Fixture'
+  source: AnalysisSource
   isFixture: boolean
   fixtureName: string | null
-  disclaimer: string | null
+  // Provenance for provider results; null for fixture results.
+  requestedModel: string | null
+  responseModel: string | null
+  effort: string | null
+  disclaimer: string
   summary: string
   attentionLevel: AttentionLevel
   concerns: Signal[]
@@ -68,9 +74,10 @@ export type Assessment = {
 export type AssessmentSummary = {
   id: number
   createdAt: string
-  source: 'Fixture'
+  source: AnalysisSource
   isFixture: boolean
   fixtureName: string | null
+  responseModel: string | null
   attentionLevel: AttentionLevel
   isCurrent: boolean
   isLatest: boolean

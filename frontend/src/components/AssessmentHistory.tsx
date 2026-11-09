@@ -99,7 +99,11 @@ function HistoryItem({
         <span className={`attention attention-${summary.attentionLevel.toLowerCase()}`}>
           Analyzer: {summary.attentionLevel}
         </span>
-        {summary.isFixture && <span className="tag">Fixture</span>}
+        {summary.isFixture ? (
+          <span className="tag">Fixture</span>
+        ) : (
+          <span className="tag tag-ai">AI{summary.responseModel ? ` · ${summary.responseModel}` : ''}</span>
+        )}
         {summary.isLatest && <span className="tag">Latest</span>}
         {!summary.isCurrent && <span className="tag">Out of date</span>}
       </button>

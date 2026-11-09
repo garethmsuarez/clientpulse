@@ -19,6 +19,14 @@ public class Assessment
 
     public string? FixtureName { get; set; }
 
+    // Provenance for provider results (null for fixture results): the model
+    // requested, the model the provider reported, and the effort used.
+    public string? RequestedModel { get; set; }
+
+    public string? ResponseModel { get; set; }
+
+    public string? Effort { get; set; }
+
     public required string Summary { get; set; }
 
     public AttentionLevel AttentionLevel { get; set; }

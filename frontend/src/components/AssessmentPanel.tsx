@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { ApiError } from '../api/apiError.ts'
+import { fetchAnalysisProvider, type ActiveAnalysisProvider } from '../api/analysis.ts'
 import { analyzeCommunications, fetchLatestAssessment, type Assessment } from '../api/assessments.ts'
 import { AssessmentView } from './AssessmentView.tsx'
 import { ReviewForm } from './ReviewForm.tsx'
@@ -22,11 +23,18 @@ function analysisErrorMessage(error: unknown): string {
   if (error instanceof ApiError) {
     switch (error.code) {
       case 'unsupported-input':
-        return `Unsupported fixture input. ${error.message}`
+        return `Unsupported input. ${error.message}`
       case 'no-communications':
         return error.message
       case 'invalid-analyzer-output':
+      case 'provider_invalid_output':
+      case 'provider_output_truncated':
+      case 'provider_refused':
+      case 'provider_configuration_error':
         return `Analysis failed. ${error.message}`
+      case 'provider_unavailable':
+      case 'provider_timeout':
+        return error.message
     }
     return error.message
   }
@@ -38,6 +46,17 @@ export function AssessmentPanel({ clientId, hasCommunications, refreshKey, onCha
   const [analyzing, setAnalyzing] = useState(false)
   const [analysisError, setAnalysisError] = useState<string | null>(null)
   const [reviewSaved, setReviewSaved] = useState(false)
+  const [provider, setProvider] = useState<ActiveAnalysisProvider | null>(null)
+
+  useEffect(() => {
+    const controller = new AbortController()
+    fetchAnalysisProvider(controller.signal)
+      .then(setProvider)
+      .catch(() => {
+        // Display-only; the Analyze action still works without it.
+      })
+    return () => controller.abort()
+  }, [])
 
   // Loads the saved assessment only; analysis runs solely from the button.
   useEffect(() => {
@@ -88,6 +107,7 @@ export function AssessmentPanel({ clientId, hasCommunications, refreshKey, onCha
         </button>
         {!hasCommunications && <span>Add a communication before analyzing.</span>}
       </div>
+      {provider && <ProviderNote provider={provider} />}
 
       {analysisError && (
         <p role="alert" className="assessment-error">
@@ -118,5 +138,23 @@ export function AssessmentPanel({ clientId, hasCommunications, refreshKey, onCha
         </>
       )}
     </section>
+  )
+}
+
+function ProviderNote({ provider }: { provider: ActiveAnalysisProvider }) {
+  if (provider.provider === 'Fixture') {
+    return (
+      <p className="provider-note">
+        Analyzer: <strong>Fixture</strong> (predefined results for the synthetic demo scenarios; no AI is called).
+      </p>
+    )
+  }
+
+  return (
+    <p className="provider-note">
+      Analyzer: <strong>Anthropic {provider.model}</strong>
+      {provider.effort && <> ({provider.effort} effort)</>}. Communications are sent to the AI provider.
+      Synthetic data only.
+    </p>
   )
 }
