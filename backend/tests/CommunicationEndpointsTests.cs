@@ -30,7 +30,7 @@ public class CommunicationEndpointsTests(ApiFactory factory)
             $"/api/clients/{ReadClientId}/communications", Json);
 
         Assert.NotNull(communications);
-        var expectedIds = ClientPulseDbContext.SeedCommunications
+        var expectedIds = DemoSeedData.Communications
             .Where(c => c.ClientId == ReadClientId)
             .OrderByDescending(c => c.OccurredAt)
             .Select(c => c.Id);
@@ -87,7 +87,7 @@ public class CommunicationEndpointsTests(ApiFactory factory)
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         var created = await response.Content.ReadFromJsonAsync<CommunicationResponse>(Json);
         Assert.NotNull(created);
-        Assert.True(created.Id >= ClientPulseDbContext.FirstGeneratedCommunicationId);
+        Assert.True(created.Id >= DemoSeedData.FirstGeneratedCommunicationId);
         Assert.Equal(WriteClientId, created.ClientId);
         Assert.Equal(CommunicationType.Meeting, created.Type);
         Assert.Equal("Synthetic check-in", created.Subject);

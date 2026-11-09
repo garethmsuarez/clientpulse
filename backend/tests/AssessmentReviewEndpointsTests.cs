@@ -149,7 +149,8 @@ public class AssessmentReviewEndpointsTests(ApiFactory factory)
         var history = await _client.GetFromJsonAsync<List<AssessmentSummaryResponse>>(
             $"/api/clients/{clientId}/assessments", Json);
 
-        Assert.Equal([third.Id, second.Id, first.Id], history!.Select(a => a.Id));
+        Assert.NotNull(history);
+        Assert.Equal([third.Id, second.Id, first.Id], history.Select(a => a.Id));
         Assert.Equal([true, false, false], history.Select(a => a.IsLatest));
         Assert.Equal(
             [ReviewStatus.Unreviewed, ReviewStatus.Adjusted, ReviewStatus.Accepted],

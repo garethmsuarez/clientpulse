@@ -11,7 +11,7 @@ public class FixtureAnalyzerTests
     // database had been recreated or the data belonged to another client.
     private static List<AnalysisCommunication> ScenarioInput(FixtureScenario scenario, int firstId = 5000) =>
         scenario.CommunicationSubjects
-            .Select(subject => ClientPulseDbContext.SeedCommunications.Single(c => c.Subject == subject))
+            .Select(subject => DemoSeedData.Communications.Single(c => c.Subject == subject))
             .Select((c, index) => new AnalysisCommunication(firstId + index, c.Type, c.OccurredAt, c.Subject, c.Body))
             .ToList();
 
