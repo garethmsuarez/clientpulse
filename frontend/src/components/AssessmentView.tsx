@@ -1,3 +1,4 @@
+import { Link } from 'react-router'
 import type { Assessment, Review, Signal } from '../api/assessments.ts'
 import { dateTimeFormat } from '../format.ts'
 
@@ -49,9 +50,15 @@ export function AssessmentView({ assessment }: { assessment: Assessment }) {
 
       <p>{assessment.summary}</p>
 
-      <SignalList title="Concerns" signals={assessment.concerns} empty="No concerns identified." />
+      <SignalList
+        title="Concerns"
+        clientId={assessment.clientId}
+        signals={assessment.concerns}
+        empty="No concerns identified."
+      />
       <SignalList
         title="Positive signals"
+        clientId={assessment.clientId}
         signals={assessment.positiveSignals}
         empty="No positive signals identified."
       />
@@ -116,7 +123,19 @@ function ReviewItem({ review }: { review: Review }) {
   )
 }
 
-function SignalList({ title, signals, empty }: { title: string; signals: Signal[]; empty: string }) {
+// Evidence links open the Communications tab with the cited communication
+// highlighted.
+function SignalList({
+  title,
+  clientId,
+  signals,
+  empty,
+}: {
+  title: string
+  clientId: number
+  signals: Signal[]
+  empty: string
+}) {
   return (
     <>
       <h3>{title}</h3>
@@ -130,9 +149,9 @@ function SignalList({ title, signals, empty }: { title: string; signals: Signal[
               <ul className="evidence" aria-label="Supporting communications">
                 {signal.evidence.map((item) => (
                   <li key={item.communicationId}>
-                    <a href={`#communication-${item.communicationId}`}>
+                    <Link to={`/clients/${clientId}/communications#communication-${item.communicationId}`}>
                       {item.type} · {dateTimeFormat.format(new Date(item.occurredAt))} — {item.subject}
-                    </a>
+                    </Link>
                   </li>
                 ))}
               </ul>

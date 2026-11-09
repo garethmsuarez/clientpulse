@@ -35,7 +35,7 @@ identifying concerning signals, and recording human review.
 
 - `backend/api/`: ASP.NET Core Minimal API targeting .NET 10, organized by feature (`Clients/`, `Communications/`, `Assessments/`, `Analysis/`), with EF Core mapping per feature and demo seed data in `Data/`.
 - `backend/tests/`: xUnit tests for the backend.
-- `frontend/`: React 19 + TypeScript + Vite application with `react-router`: client list, client detail, communication entry, assessment panel with review form, and assessment history.
+- `frontend/`: React 19 + TypeScript + Vite application with `react-router`: client list, and a client view split into nested routes (Overview, Assessment, Communications, History) under `src/components/client/`. Tests use Vitest and React Testing Library (`src/**/*.test.tsx`, helpers in `src/test/`).
 - `compose.yaml`: local PostgreSQL 17 service, exposed on `localhost:5433`.
 
 Do not assume product behavior or domain architecture that is not present in the code. Follow the established patterns in the files you touch, and keep changes focused.
@@ -100,6 +100,7 @@ Frontend commands run from `frontend/`:
 npm run dev
 npm run build
 npm run lint
+npm run test
 ```
 
 Start the local database with `docker compose up -d postgres`; stop it with `docker compose down`. The Compose database credentials are for local development only.
@@ -115,6 +116,7 @@ Start the local database with `docker compose up -d postgres`; stop it with `doc
 ## Verification
 - Backend: dotnet build and dotnet test.
 - Frontend: npm --prefix frontend run lint.
+- Frontend: npm --prefix frontend run test.
 - Frontend: npm --prefix frontend run build.
 - Report commands actually run, outcomes, and anything not verified.
 - Explain important changes and trade-offs after each task.

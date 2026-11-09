@@ -1,23 +1,16 @@
 import { useEffect, useState } from 'react'
-import { ApiError } from '../api/apiError.ts'
-import { fetchAnalysisProvider, type ActiveAnalysisProvider } from '../api/analysis.ts'
-import { analyzeCommunications, fetchLatestAssessment, type Assessment } from '../api/assessments.ts'
-import { AssessmentView } from './AssessmentView.tsx'
-import { ReviewForm } from './ReviewForm.tsx'
+import { ApiError } from '../../api/apiError.ts'
+import { fetchAnalysisProvider, type ActiveAnalysisProvider } from '../../api/analysis.ts'
+import { analyzeCommunications, fetchLatestAssessment, type Assessment } from '../../api/assessments.ts'
+import { AssessmentView } from '../AssessmentView.tsx'
+import { ReviewForm } from '../ReviewForm.tsx'
+import { useClientContext } from './clientContext.ts'
 
 type LatestState =
   | { status: 'loading' }
   | { status: 'none' }
   | { status: 'error'; message: string }
   | { status: 'loaded'; assessment: Assessment }
-
-type AssessmentPanelProps = {
-  clientId: number
-  hasCommunications: boolean
-  refreshKey: number
-  // Called after a new assessment or review is saved, so history can reload.
-  onChanged: () => void
-}
 
 function analysisErrorMessage(error: unknown): string {
   if (error instanceof ApiError) {
@@ -41,12 +34,17 @@ function analysisErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : 'Analysis failed.'
 }
 
-export function AssessmentPanel({ clientId, hasCommunications, refreshKey, onChanged }: AssessmentPanelProps) {
+// The latest assessment: analyze, read the result, and review it.
+export function AssessmentTab() {
+  const { client, communications } = useClientContext()
   const [latest, setLatest] = useState<LatestState>({ status: 'loading' })
+  const [reload, setReload] = useState(0)
   const [analyzing, setAnalyzing] = useState(false)
   const [analysisError, setAnalysisError] = useState<string | null>(null)
+  const [reviewOpen, setReviewOpen] = useState(false)
   const [reviewSaved, setReviewSaved] = useState(false)
   const [provider, setProvider] = useState<ActiveAnalysisProvider | null>(null)
+  const hasCommunications = communications.length > 0
 
   useEffect(() => {
     const controller = new AbortController()
@@ -62,10 +60,8 @@ export function AssessmentPanel({ clientId, hasCommunications, refreshKey, onCha
   useEffect(() => {
     const controller = new AbortController()
 
-    fetchLatestAssessment(clientId, controller.signal)
-      .then((assessment) =>
-        setLatest(assessment ? { status: 'loaded', assessment } : { status: 'none' }),
-      )
+    fetchLatestAssessment(client.id, controller.signal)
+      .then((assessment) => setLatest(assessment ? { status: 'loaded', assessment } : { status: 'none' }))
       .catch((error: unknown) => {
         if (controller.signal.aborted) return
         const message = error instanceof Error ? error.message : 'Failed to load assessment'
@@ -73,16 +69,16 @@ export function AssessmentPanel({ clientId, hasCommunications, refreshKey, onCha
       })
 
     return () => controller.abort()
-  }, [clientId, refreshKey])
+  }, [client.id, reload])
 
   async function handleAnalyze() {
     setAnalyzing(true)
     setAnalysisError(null)
     setReviewSaved(false)
     try {
-      const assessment = await analyzeCommunications(clientId)
+      const assessment = await analyzeCommunications(client.id)
       setLatest({ status: 'loaded', assessment })
-      onChanged()
+      setReviewOpen(false)
     } catch (error: unknown) {
       // Any previously loaded assessment stays on screen unchanged.
       setAnalysisError(analysisErrorMessage(error))
@@ -93,8 +89,9 @@ export function AssessmentPanel({ clientId, hasCommunications, refreshKey, onCha
 
   function handleReviewCreated() {
     setReviewSaved(true)
-    // Reloads the latest assessment (with its review status) and history.
-    onChanged()
+    setReviewOpen(false)
+    // Re-reads the latest assessment so its review status and history update.
+    setReload((n) => n + 1)
   }
 
   return (
@@ -122,19 +119,39 @@ export function AssessmentPanel({ clientId, hasCommunications, refreshKey, onCha
       {latest.status === 'loaded' && (
         <>
           <AssessmentView assessment={latest.assessment} />
-          <h3>Add a review</h3>
-          {!latest.assessment.isCurrent && (
-            <p className="assessment-stale" role="note">
-              You are reviewing an assessment of an earlier set of communications.
-            </p>
+
+          <div className="review-toggle">
+            {reviewSaved && <p role="status">Review saved.</p>}
+            <button
+              type="button"
+              className="button-secondary"
+              aria-expanded={reviewOpen}
+              aria-controls="review-panel"
+              onClick={() => {
+                setReviewOpen((open) => !open)
+                setReviewSaved(false)
+              }}
+            >
+              {reviewOpen ? 'Cancel review' : 'Review this assessment'}
+            </button>
+          </div>
+
+          {reviewOpen && (
+            <div id="review-panel" className="review-panel">
+              <h3>Add a review</h3>
+              {!latest.assessment.isCurrent && (
+                <p className="assessment-stale" role="note">
+                  You are reviewing an assessment of an earlier set of communications.
+                </p>
+              )}
+              <ReviewForm
+                key={latest.assessment.id}
+                clientId={client.id}
+                assessment={latest.assessment}
+                onCreated={handleReviewCreated}
+              />
+            </div>
           )}
-          {reviewSaved && <p role="status">Review saved.</p>}
-          <ReviewForm
-            key={latest.assessment.id}
-            clientId={clientId}
-            assessment={latest.assessment}
-            onCreated={handleReviewCreated}
-          />
         </>
       )}
     </section>
