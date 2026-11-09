@@ -22,7 +22,9 @@ builder.Services.AddDbContext<ClientPulseDbContext>(options => options.UseNpgsql
 
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddCommunicationAnalysis(builder.Configuration);
+builder.Services.AddScoped<AssessmentQueries>();
 builder.Services.AddScoped<AssessmentService>();
+builder.Services.AddScoped<ReviewService>();
 
 var app = builder.Build();
 

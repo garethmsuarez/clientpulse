@@ -30,26 +30,26 @@ public static class AssessmentEndpoints
             .WithName("AnalyzeClientCommunications");
 
         group.MapGet("/", async Task<Results<Ok<List<AssessmentSummaryResponse>>, ProblemHttpResult>> (
-                int clientId, ClientPulseDbContext db, AssessmentService service, CancellationToken cancellationToken) =>
+                int clientId, ClientPulseDbContext db, AssessmentQueries queries, CancellationToken cancellationToken) =>
             {
                 if (!await ClientExistsAsync(db, clientId, cancellationToken))
                 {
                     return ClientProblems.NotFound(clientId);
                 }
 
-                return TypedResults.Ok(await service.GetHistoryAsync(clientId, cancellationToken));
+                return TypedResults.Ok(await queries.GetHistoryAsync(clientId, cancellationToken));
             })
             .WithName("GetClientAssessments");
 
         group.MapGet("/latest", async Task<Results<Ok<AssessmentResponse>, NoContent, ProblemHttpResult>> (
-                int clientId, ClientPulseDbContext db, AssessmentService service, CancellationToken cancellationToken) =>
+                int clientId, ClientPulseDbContext db, AssessmentQueries queries, CancellationToken cancellationToken) =>
             {
                 if (!await ClientExistsAsync(db, clientId, cancellationToken))
                 {
                     return ClientProblems.NotFound(clientId);
                 }
 
-                var latest = await service.GetLatestAsync(clientId, cancellationToken);
+                var latest = await queries.GetLatestAsync(clientId, cancellationToken);
                 return latest is null ? TypedResults.NoContent() : TypedResults.Ok(latest);
             })
             .WithName("GetLatestClientAssessment");
@@ -58,7 +58,7 @@ public static class AssessmentEndpoints
                 int clientId,
                 int assessmentId,
                 ClientPulseDbContext db,
-                AssessmentService service,
+                AssessmentQueries queries,
                 CancellationToken cancellationToken) =>
             {
                 if (!await ClientExistsAsync(db, clientId, cancellationToken))
@@ -66,7 +66,7 @@ public static class AssessmentEndpoints
                     return ClientProblems.NotFound(clientId);
                 }
 
-                var assessment = await service.GetAsync(clientId, assessmentId, cancellationToken);
+                var assessment = await queries.GetAsync(clientId, assessmentId, cancellationToken);
                 return assessment is null
                     ? AssessmentProblems.AssessmentNotFound(assessmentId)
                     : TypedResults.Ok(assessment);
@@ -79,7 +79,7 @@ public static class AssessmentEndpoints
                     int assessmentId,
                     CreateReviewRequest request,
                     ClientPulseDbContext db,
-                    AssessmentService service,
+                    ReviewService reviews,
                     CancellationToken cancellationToken) =>
                 {
                     if (!await ClientExistsAsync(db, clientId, cancellationToken))
@@ -87,7 +87,7 @@ public static class AssessmentEndpoints
                         return ClientProblems.NotFound(clientId);
                     }
 
-                    var result = await service.AddReviewAsync(clientId, assessmentId, request, cancellationToken);
+                    var result = await reviews.AddReviewAsync(clientId, assessmentId, request, cancellationToken);
 
                     return result.Status switch
                     {

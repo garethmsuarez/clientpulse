@@ -11,7 +11,7 @@ public static class ClientEndpoints
     {
         var group = app.MapGroup("/api/clients").WithTags("Clients");
 
-        group.MapGet("/", async (ClientPulseDbContext db, AssessmentService assessments, CancellationToken cancellationToken) =>
+        group.MapGet("/", async (ClientPulseDbContext db, AssessmentQueries assessments, CancellationToken cancellationToken) =>
             {
                 var clients = await db.Clients
                     .AsNoTracking()

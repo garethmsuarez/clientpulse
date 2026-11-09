@@ -38,6 +38,34 @@ public class Assessment
 
     // Stored as a JSON column.
     public List<AssessmentSignal> Signals { get; set; } = [];
+
+    // Builds a new row from validated analyzer output and the exact input it was given.
+    public static Assessment FromResult(
+        int clientId,
+        AnalysisResult result,
+        IReadOnlyList<AnalysisCommunication> communications,
+        DateTimeOffset createdAt) => new()
+    {
+        ClientId = clientId,
+        CreatedAt = createdAt,
+        Source = result.Source,
+        FixtureName = result.FixtureName,
+        RequestedModel = result.RequestedModel,
+        ResponseModel = result.ResponseModel,
+        Effort = result.Effort,
+        Summary = result.Summary,
+        AttentionLevel = result.AttentionLevel,
+        InputFingerprint = Analysis.InputFingerprint.Compute(communications),
+        AnalyzedCommunicationIds = communications.Select(c => c.Id).ToList(),
+        Signals = result.Signals
+            .Select(signal => new AssessmentSignal
+            {
+                Kind = signal.Kind,
+                Description = signal.Description,
+                EvidenceCommunicationIds = signal.EvidenceCommunicationIds.ToList(),
+            })
+            .ToList(),
+    };
 }
 
 public class AssessmentSignal
