@@ -1,7 +1,7 @@
 # Current status
 
 - Milestones 1–7 are complete.
-- Next: see Future (demo reliability, tests, and presentation preparation).
+- Next: milestone 8, assessment information and sorting on the client list.
 - API: `GET /api/clients`, `GET /api/clients/{id}`,
   `GET`/`POST /api/clients/{clientId}/communications`, and
   assessments under `/api/clients/{clientId}/assessments`: `POST` (analyze),
@@ -75,6 +75,8 @@ retries (2), plus a 120 s overall deadline. Failures return 502
 7. Break up the client view into smaller pieces. It currently shows a lot of
    information on one page, with multiple sections for entering different
    things. (complete)
+8. Add assessment information on the client list view, including the latest
+   assessment status, and allow sorting by assessment severity and date.
 
 # Future
 
