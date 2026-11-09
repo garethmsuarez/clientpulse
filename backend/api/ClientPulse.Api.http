@@ -46,3 +46,29 @@ GET {{ClientPulse.Api_HostAddress}}/api/clients/3/assessments/latest
 Accept: application/json
 
 ###
+
+# Assessment history, newest first (200; empty list when none)
+GET {{ClientPulse.Api_HostAddress}}/api/clients/3/assessments
+Accept: application/json
+
+###
+
+# One assessment with its review history (404 if it belongs to another client)
+GET {{ClientPulse.Api_HostAddress}}/api/clients/3/assessments/1
+Accept: application/json
+
+###
+
+# Review the latest assessment (synthetic example). 201, 400 field errors,
+# 404, or 409 when a newer assessment exists. reviewerName is self-reported.
+POST {{ClientPulse.Api_HostAddress}}/api/clients/3/assessments/1/reviews
+Content-Type: application/json
+
+{
+  "decision": "Adjusted",
+  "reviewedAttentionLevel": "Medium",
+  "notes": "Synthetic review note.",
+  "reviewerName": "Synthetic Reviewer"
+}
+
+###

@@ -27,4 +27,17 @@ public class AssessmentModelTests
         Assert.True(signals.IsMappedToJson());
         Assert.Equal("Signals", signals.GetContainerColumnName());
     }
+
+    [Fact]
+    public void AssessmentReview_MapsEnumsAsStringsWithRequiredAssessment()
+    {
+        using var context = CreateContext();
+        var entity = context.Model.FindEntityType(typeof(AssessmentReview))!;
+
+        Assert.Equal("character varying(10)", entity.FindProperty(nameof(AssessmentReview.Decision))!.GetColumnType());
+        Assert.True(entity.FindProperty(nameof(AssessmentReview.ReviewedAttentionLevel))!.IsNullable);
+        Assert.True(entity.FindProperty(nameof(AssessmentReview.Notes))!.IsNullable);
+        Assert.False(entity.FindProperty(nameof(AssessmentReview.ReviewerName))!.IsNullable);
+        Assert.True(entity.GetForeignKeys().Single().IsRequired);
+    }
 }

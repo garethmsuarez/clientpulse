@@ -72,6 +72,44 @@ namespace ClientPulse.Api.Migrations
                     b.ToTable("Assessments");
                 });
 
+            modelBuilder.Entity("ClientPulse.Api.Assessments.AssessmentReview", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("AssessmentId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Decision")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("text");
+
+                    b.Property<string>("ReviewedAttentionLevel")
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
+
+                    b.Property<string>("ReviewerName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AssessmentId", "CreatedAt");
+
+                    b.ToTable("AssessmentReviews");
+                });
+
             modelBuilder.Entity("ClientPulse.Api.Clients.Client", b =>
                 {
                     b.Property<int>("Id")
@@ -347,6 +385,17 @@ namespace ClientPulse.Api.Migrations
                     b.Navigation("Client");
 
                     b.Navigation("Signals");
+                });
+
+            modelBuilder.Entity("ClientPulse.Api.Assessments.AssessmentReview", b =>
+                {
+                    b.HasOne("ClientPulse.Api.Assessments.Assessment", "Assessment")
+                        .WithMany()
+                        .HasForeignKey("AssessmentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Assessment");
                 });
 
             modelBuilder.Entity("ClientPulse.Api.Communications.Communication", b =>

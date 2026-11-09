@@ -1,12 +1,8 @@
 import { useEffect, useState } from 'react'
 import { ApiError } from '../api/apiError.ts'
-import {
-  analyzeCommunications,
-  fetchLatestAssessment,
-  type Assessment,
-  type Signal,
-} from '../api/assessments.ts'
-import { dateTimeFormat } from '../format.ts'
+import { analyzeCommunications, fetchLatestAssessment, type Assessment } from '../api/assessments.ts'
+import { AssessmentView } from './AssessmentView.tsx'
+import { ReviewForm } from './ReviewForm.tsx'
 
 type LatestState =
   | { status: 'loading' }
@@ -18,6 +14,8 @@ type AssessmentPanelProps = {
   clientId: number
   hasCommunications: boolean
   refreshKey: number
+  // Called after a new assessment or review is saved, so history can reload.
+  onChanged: () => void
 }
 
 function analysisErrorMessage(error: unknown): string {
@@ -35,10 +33,11 @@ function analysisErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : 'Analysis failed.'
 }
 
-export function AssessmentPanel({ clientId, hasCommunications, refreshKey }: AssessmentPanelProps) {
+export function AssessmentPanel({ clientId, hasCommunications, refreshKey, onChanged }: AssessmentPanelProps) {
   const [latest, setLatest] = useState<LatestState>({ status: 'loading' })
   const [analyzing, setAnalyzing] = useState(false)
   const [analysisError, setAnalysisError] = useState<string | null>(null)
+  const [reviewSaved, setReviewSaved] = useState(false)
 
   // Loads the saved assessment only; analysis runs solely from the button.
   useEffect(() => {
@@ -60,9 +59,11 @@ export function AssessmentPanel({ clientId, hasCommunications, refreshKey }: Ass
   async function handleAnalyze() {
     setAnalyzing(true)
     setAnalysisError(null)
+    setReviewSaved(false)
     try {
       const assessment = await analyzeCommunications(clientId)
       setLatest({ status: 'loaded', assessment })
+      onChanged()
     } catch (error: unknown) {
       // Any previously loaded assessment stays on screen unchanged.
       setAnalysisError(analysisErrorMessage(error))
@@ -71,9 +72,15 @@ export function AssessmentPanel({ clientId, hasCommunications, refreshKey }: Ass
     }
   }
 
+  function handleReviewCreated() {
+    setReviewSaved(true)
+    // Reloads the latest assessment (with its review status) and history.
+    onChanged()
+  }
+
   return (
     <section className="assessment" aria-labelledby="assessment-heading" aria-busy={analyzing}>
-      <h2 id="assessment-heading">Assessment</h2>
+      <h2 id="assessment-heading">Latest assessment</h2>
 
       <div className="assessment-actions">
         <button type="button" onClick={handleAnalyze} disabled={analyzing || !hasCommunications}>
@@ -92,77 +99,24 @@ export function AssessmentPanel({ clientId, hasCommunications, refreshKey }: Ass
       {latest.status === 'loading' && <p>Loading assessment…</p>}
       {latest.status === 'error' && <p role="alert">{latest.message}</p>}
       {latest.status === 'none' && <p>No assessment yet.</p>}
-      {latest.status === 'loaded' && <AssessmentView assessment={latest.assessment} />}
+      {latest.status === 'loaded' && (
+        <>
+          <AssessmentView assessment={latest.assessment} />
+          <h3>Add a review</h3>
+          {!latest.assessment.isCurrent && (
+            <p className="assessment-stale" role="note">
+              You are reviewing an assessment of an earlier set of communications.
+            </p>
+          )}
+          {reviewSaved && <p role="status">Review saved.</p>}
+          <ReviewForm
+            key={latest.assessment.id}
+            clientId={clientId}
+            assessment={latest.assessment}
+            onCreated={handleReviewCreated}
+          />
+        </>
+      )}
     </section>
-  )
-}
-
-function AssessmentView({ assessment }: { assessment: Assessment }) {
-  return (
-    <article className="assessment-result">
-      {assessment.isFixture && (
-        <p className="fixture-label" role="note">
-          <strong>{assessment.disclaimer ?? 'Fixture result.'}</strong>
-          {assessment.fixtureName && <> Scenario: {assessment.fixtureName}</>}
-        </p>
-      )}
-
-      {!assessment.isCurrent && (
-        <p className="assessment-stale" role="note">
-          Communications have changed since this assessment was saved.
-        </p>
-      )}
-
-      <p className="assessment-meta">
-        <span className={`attention attention-${assessment.attentionLevel.toLowerCase()}`}>
-          Attention: {assessment.attentionLevel}
-        </span>
-        <span>
-          Saved{' '}
-          <time dateTime={assessment.createdAt}>
-            {dateTimeFormat.format(new Date(assessment.createdAt))}
-          </time>{' '}
-          from {assessment.analyzedCommunicationIds.length} communication
-          {assessment.analyzedCommunicationIds.length === 1 ? '' : 's'}
-        </span>
-      </p>
-
-      <p>{assessment.summary}</p>
-
-      <SignalList title="Concerns" signals={assessment.concerns} empty="No concerns identified." />
-      <SignalList
-        title="Positive signals"
-        signals={assessment.positiveSignals}
-        empty="No positive signals identified."
-      />
-    </article>
-  )
-}
-
-function SignalList({ title, signals, empty }: { title: string; signals: Signal[]; empty: string }) {
-  return (
-    <>
-      <h3>{title}</h3>
-      {signals.length === 0 ? (
-        <p>{empty}</p>
-      ) : (
-        <ul className="signals">
-          {signals.map((signal, index) => (
-            <li key={index}>
-              {signal.description}
-              <ul className="evidence" aria-label="Supporting communications">
-                {signal.evidence.map((item) => (
-                  <li key={item.communicationId}>
-                    <a href={`#communication-${item.communicationId}`}>
-                      {item.type} · {dateTimeFormat.format(new Date(item.occurredAt))} — {item.subject}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </li>
-          ))}
-        </ul>
-      )}
-    </>
   )
 }
