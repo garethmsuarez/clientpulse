@@ -18,11 +18,21 @@ function NotFound() {
 
 function App() {
   return (
-    <Routes>
-      <Route path="/" element={<ClientList />} />
-      <Route path="/clients/:clientId" element={<ClientDetail />} />
-      <Route path="*" element={<NotFound />} />
-    </Routes>
+    <div className="app-shell">
+      <header className="app-header">
+        <Link to="/" className="app-wordmark">
+          ClientPulse
+        </Link>
+        <span className="app-tagline">Client communication review</span>
+      </header>
+      <div className="app-content">
+        <Routes>
+          <Route path="/" element={<ClientList />} />
+          <Route path="/clients/:clientId" element={<ClientDetail />} />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </div>
+    </div>
   )
 }
 
