@@ -21,7 +21,7 @@ public static class ReviewRules
     {
         errors = [];
 
-        var decision = ParseName<ReviewDecision>(request.Decision);
+        var decision = EnumNames.Parse<ReviewDecision>(request.Decision);
         if (string.IsNullOrWhiteSpace(request.Decision))
         {
             errors["decision"] = ["Decision is required."];
@@ -34,7 +34,7 @@ public static class ReviewRules
         AttentionLevel? level = null;
         if (!string.IsNullOrWhiteSpace(request.ReviewedAttentionLevel))
         {
-            level = ParseName<AttentionLevel>(request.ReviewedAttentionLevel);
+            level = EnumNames.Parse<AttentionLevel>(request.ReviewedAttentionLevel);
             if (level is null)
             {
                 errors["reviewedAttentionLevel"] =
@@ -86,19 +86,5 @@ public static class ReviewRules
 
         result = new ValidReview(decision.Value, level, notes, reviewerName);
         return true;
-    }
-
-    // Accept names only (case-insensitive); Enum.TryParse would also accept numbers.
-    private static T? ParseName<T>(string? value) where T : struct, Enum
-    {
-        foreach (var candidate in Enum.GetValues<T>())
-        {
-            if (string.Equals(candidate.ToString(), value?.Trim(), StringComparison.OrdinalIgnoreCase))
-            {
-                return candidate;
-            }
-        }
-
-        return null;
     }
 }

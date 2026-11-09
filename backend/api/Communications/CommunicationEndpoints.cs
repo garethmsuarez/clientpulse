@@ -24,17 +24,9 @@ public static class CommunicationEndpoints
                     .Where(communication => communication.ClientId == clientId)
                     .OrderByDescending(communication => communication.OccurredAt)
                     .ThenByDescending(communication => communication.Id)
-                    .Select(communication => new CommunicationResponse(
-                        communication.Id,
-                        communication.ClientId,
-                        communication.Type,
-                        communication.OccurredAt,
-                        communication.Subject,
-                        communication.Body,
-                        communication.CreatedAt))
                     .ToListAsync(cancellationToken);
 
-                return TypedResults.Ok(communications);
+                return TypedResults.Ok(communications.Select(CommunicationResponse.From).ToList());
             })
             .WithName("GetClientCommunications");
 
@@ -42,6 +34,7 @@ public static class CommunicationEndpoints
                 int clientId,
                 CreateCommunicationRequest request,
                 ClientPulseDbContext db,
+                TimeProvider timeProvider,
                 CancellationToken cancellationToken) =>
             {
                 if (!await db.Clients.AnyAsync(client => client.Id == clientId, cancellationToken))
@@ -49,7 +42,7 @@ public static class CommunicationEndpoints
                     return ClientProblems.NotFound(clientId);
                 }
 
-                var now = DateTimeOffset.UtcNow;
+                var now = timeProvider.GetUtcNow();
                 if (!CommunicationRules.TryValidate(request, now, out var valid, out var errors))
                 {
                     return TypedResults.ValidationProblem(errors);
@@ -68,17 +61,8 @@ public static class CommunicationEndpoints
                 db.Communications.Add(communication);
                 await db.SaveChangesAsync(cancellationToken);
 
-                var response = new CommunicationResponse(
-                    communication.Id,
-                    communication.ClientId,
-                    communication.Type,
-                    communication.OccurredAt,
-                    communication.Subject,
-                    communication.Body,
-                    communication.CreatedAt);
-
                 // No single-communication route exists yet, so no Location header is sent.
-                return TypedResults.Created((string?)null, response);
+                return TypedResults.Created((string?)null, CommunicationResponse.From(communication));
             })
             .WithName("CreateClientCommunication");
 
@@ -93,4 +77,14 @@ public record CommunicationResponse(
     DateTimeOffset OccurredAt,
     string Subject,
     string Body,
-    DateTimeOffset CreatedAt);
+    DateTimeOffset CreatedAt)
+{
+    public static CommunicationResponse From(Communication communication) => new(
+        communication.Id,
+        communication.ClientId,
+        communication.Type,
+        communication.OccurredAt,
+        communication.Subject,
+        communication.Body,
+        communication.CreatedAt);
+}

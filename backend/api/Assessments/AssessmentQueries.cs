@@ -1,4 +1,5 @@
 using ClientPulse.Api.Analysis;
+using ClientPulse.Api.Communications;
 using ClientPulse.Api.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -34,7 +35,7 @@ public class AssessmentQueries(ClientPulseDbContext db)
         var rows = await SummaryRows(db.Assessments.Where(a => a.ClientId == clientId).NewestFirst())
             .ToListAsync(cancellationToken);
 
-        var currentFingerprint = await CurrentFingerprintAsync(clientId, cancellationToken);
+        var currentFingerprint = (await CurrentFingerprintsAsync([clientId], cancellationToken))[clientId];
         var latestId = rows.FirstOrDefault()?.Id;
 
         return rows.Select(row => ToSummary(row, row.InputFingerprint == currentFingerprint, row.Id == latestId)).ToList();
@@ -54,18 +55,11 @@ public class AssessmentQueries(ClientPulseDbContext db)
             return [];
         }
 
-        var clientIds = rows.Select(row => row.ClientId).ToList();
-        var communications = await db.Communications
-            .AsNoTracking()
-            .Where(c => clientIds.Contains(c.ClientId))
-            .ToListAsync(cancellationToken);
-        var fingerprints = communications
-            .GroupBy(c => c.ClientId)
-            .ToDictionary(group => group.Key, group => InputFingerprint.Compute(group));
+        var fingerprints = await CurrentFingerprintsAsync(rows.Select(row => row.ClientId).ToList(), cancellationToken);
 
         return rows.ToDictionary(
             row => row.ClientId,
-            row => ToSummary(row, fingerprints.GetValueOrDefault(row.ClientId) == row.InputFingerprint, isLatest: true));
+            row => ToSummary(row, fingerprints[row.ClientId] == row.InputFingerprint, isLatest: true));
     }
 
     // Only the newest assessment is reviewable, so reviews use this too.
@@ -78,10 +72,8 @@ public class AssessmentQueries(ClientPulseDbContext db)
 
     public async Task<AssessmentResponse> ToResponseAsync(Assessment assessment, CancellationToken cancellationToken)
     {
-        var current = await db.Communications
-            .AsNoTracking()
-            .Where(c => c.ClientId == assessment.ClientId)
-            .ToListAsync(cancellationToken);
+        var current = (await CurrentCommunicationsAsync([assessment.ClientId], cancellationToken))[assessment.ClientId]
+            .ToList();
 
         var reviews = await db.AssessmentReviews
             .AsNoTracking()
@@ -91,40 +83,29 @@ public class AssessmentQueries(ClientPulseDbContext db)
 
         var latestId = await LatestIdAsync(assessment.ClientId, cancellationToken);
 
-        var evidenceById = current
-            .Where(c => assessment.AnalyzedCommunicationIds.Contains(c.Id))
-            .ToDictionary(c => c.Id, c => new EvidenceResponse(c.Id, c.Type, c.OccurredAt, c.Subject));
+        return AssessmentResponse.From(assessment, current, reviews, latestId);
+    }
 
-        IReadOnlyList<SignalResponse> Signals(SignalKind kind) => assessment.Signals
-            .Where(signal => signal.Kind == kind)
-            .Select(signal => new SignalResponse(
-                signal.Description,
-                signal.EvidenceCommunicationIds.Where(evidenceById.ContainsKey).Select(id => evidenceById[id]).ToList()))
-            .ToList();
+    // The one place current communications are loaded for IsCurrent and
+    // evidence. One query for any number of clients.
+    private async Task<ILookup<int, Communication>> CurrentCommunicationsAsync(
+        IReadOnlyCollection<int> clientIds, CancellationToken cancellationToken)
+    {
+        var communications = await db.Communications
+            .AsNoTracking()
+            .Where(c => clientIds.Contains(c.ClientId))
+            .ToListAsync(cancellationToken);
 
-        var latestReview = reviews.FirstOrDefault();
+        return communications.ToLookup(c => c.ClientId);
+    }
 
-        return new AssessmentResponse(
-            assessment.Id,
-            assessment.ClientId,
-            assessment.CreatedAt,
-            assessment.Source,
-            assessment.Source == AnalysisSource.Fixture,
-            assessment.FixtureName,
-            assessment.RequestedModel,
-            assessment.ResponseModel,
-            assessment.Effort,
-            AssessmentDisclaimer.For(assessment.Source, assessment.ResponseModel ?? assessment.RequestedModel),
-            assessment.Summary,
-            assessment.AttentionLevel,
-            Signals(SignalKind.Concern),
-            Signals(SignalKind.Positive),
-            assessment.AnalyzedCommunicationIds,
-            InputFingerprint.Compute(current) == assessment.InputFingerprint,
-            assessment.Id == latestId,
-            ReviewOutcome.Status(latestReview),
-            ReviewOutcome.ApprovedLevel(assessment.AttentionLevel, latestReview),
-            reviews.Select(ReviewOutcome.ToResponse).ToList());
+    // Every requested client gets an entry; one with no communications gets the
+    // fingerprint of the empty set, which never matches a saved assessment.
+    private async Task<Dictionary<int, string>> CurrentFingerprintsAsync(
+        IReadOnlyCollection<int> clientIds, CancellationToken cancellationToken)
+    {
+        var communications = await CurrentCommunicationsAsync(clientIds, cancellationToken);
+        return clientIds.Distinct().ToDictionary(id => id, id => InputFingerprint.Compute(communications[id]));
     }
 
     private sealed record SummaryRow(
@@ -170,11 +151,5 @@ public class AssessmentQueries(ClientPulseDbContext db)
         isLatest,
         ReviewOutcome.Status(row.LatestReview),
         ReviewOutcome.ApprovedLevel(row.AttentionLevel, row.LatestReview),
-        row.LatestReview is null ? null : ReviewOutcome.ToResponse(row.LatestReview));
-
-    private async Task<string> CurrentFingerprintAsync(int clientId, CancellationToken cancellationToken) =>
-        InputFingerprint.Compute(await db.Communications
-            .AsNoTracking()
-            .Where(c => c.ClientId == clientId)
-            .ToListAsync(cancellationToken));
+        row.LatestReview is null ? null : ReviewResponse.From(row.LatestReview));
 }

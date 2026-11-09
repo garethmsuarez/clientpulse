@@ -86,7 +86,9 @@ public sealed class ClaudeCommunicationAnalyzer : ICommunicationAnalyzer
         return kind;
     }
 
-    private static Effort ParseEffort(string effort) => effort switch
+    // Must accept every AnthropicAnalysisOptions.EffortLevels value; a unit
+    // test keeps the two lists in step.
+    public static Effort ParseEffort(string effort) => effort switch
     {
         "low" => Effort.Low,
         "medium" => Effort.Medium,

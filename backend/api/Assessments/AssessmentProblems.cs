@@ -29,8 +29,8 @@ public static class AssessmentProblems
         reason,
         UnsupportedInputCode);
 
-    // In-process analyzer produced invalid output. 502 is reserved for invalid
-    // responses from a future external AI provider.
+    // The in-process fixture analyzer produced invalid output (500). Invalid
+    // output from an external provider is a 502; see ProviderFailure.
     public static ProblemHttpResult InvalidAnalyzerOutput() => Problem(
         StatusCodes.Status500InternalServerError,
         "Analysis failed",
