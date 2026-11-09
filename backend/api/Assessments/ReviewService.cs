@@ -57,6 +57,6 @@ public class ReviewService(ClientPulseDbContext db, AssessmentQueries queries, T
         db.AssessmentReviews.Add(review);
         await db.SaveChangesAsync(cancellationToken);
 
-        return new ReviewSubmitResult(ReviewSubmitStatus.Created, ReviewOutcome.ToResponse(review));
+        return new ReviewSubmitResult(ReviewSubmitStatus.Created, ReviewResponse.From(review));
     }
 }

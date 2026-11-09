@@ -22,7 +22,7 @@ public static class CommunicationRules
     {
         errors = [];
 
-        var type = ParseType(request.Type);
+        var type = EnumNames.Parse<CommunicationType>(request.Type);
         if (string.IsNullOrWhiteSpace(request.Type))
         {
             errors["type"] = ["Type is required."];
@@ -78,19 +78,5 @@ public static class CommunicationRules
 
         result = new ValidCommunication(type.Value, occurredAt.ToUniversalTime(), subject, body);
         return true;
-    }
-
-    // Accept names only (case-insensitive); Enum.TryParse would also accept numbers.
-    private static CommunicationType? ParseType(string? value)
-    {
-        foreach (var type in Enum.GetValues<CommunicationType>())
-        {
-            if (string.Equals(type.ToString(), value?.Trim(), StringComparison.OrdinalIgnoreCase))
-            {
-                return type;
-            }
-        }
-
-        return null;
     }
 }

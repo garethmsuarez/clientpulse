@@ -24,29 +24,8 @@ public static class AnalysisSetup
 
         var claude = options.Anthropic;
         var apiKey = configuration[ApiKeySetting];
-        var problems = new List<string>();
 
-        if (string.IsNullOrWhiteSpace(apiKey))
-        {
-            problems.Add($"'{ApiKeySetting}' is not set. Store it with user secrets or an environment variable (Anthropic__ApiKey).");
-        }
-
-        if (string.IsNullOrWhiteSpace(claude.Model))
-        {
-            problems.Add("'Analysis:Anthropic:Model' is not set.");
-        }
-
-        if (!AnthropicAnalysisOptions.EffortLevels.Contains(claude.Effort))
-        {
-            problems.Add($"'Analysis:Anthropic:Effort' must be one of: {string.Join(", ", AnthropicAnalysisOptions.EffortLevels)}.");
-        }
-
-        if (claude.MaxOutputTokens <= 0 || claude.AttemptTimeoutSeconds <= 0 || claude.OverallTimeoutSeconds <= 0 ||
-            claude.MaxRetries < 0 || claude.MaxCommunications <= 0 || claude.MaxInputCharacters <= 0)
-        {
-            problems.Add("'Analysis:Anthropic' limits and timeouts must be positive (MaxRetries may be 0).");
-        }
-
+        var problems = claude.Validate(apiKey);
         if (problems.Count > 0)
         {
             throw new InvalidOperationException(

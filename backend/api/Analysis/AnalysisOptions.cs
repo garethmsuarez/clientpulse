@@ -40,6 +40,36 @@ public class AnthropicAnalysisOptions
     public int MaxCommunications { get; set; } = 200;
 
     public int MaxInputCharacters { get; set; } = 400_000;
+
+    // Everything wrong with these settings and the API key, as messages for a
+    // startup error. Empty when valid. Messages never include the key itself.
+    public List<string> Validate(string? apiKey)
+    {
+        var problems = new List<string>();
+
+        if (string.IsNullOrWhiteSpace(apiKey))
+        {
+            problems.Add($"'{AnalysisSetup.ApiKeySetting}' is not set. Store it with user secrets or an environment variable (Anthropic__ApiKey).");
+        }
+
+        if (string.IsNullOrWhiteSpace(Model))
+        {
+            problems.Add("'Analysis:Anthropic:Model' is not set.");
+        }
+
+        if (!EffortLevels.Contains(Effort))
+        {
+            problems.Add($"'Analysis:Anthropic:Effort' must be one of: {string.Join(", ", EffortLevels)}.");
+        }
+
+        if (MaxOutputTokens <= 0 || AttemptTimeoutSeconds <= 0 || OverallTimeoutSeconds <= 0 ||
+            MaxRetries < 0 || MaxCommunications <= 0 || MaxInputCharacters <= 0)
+        {
+            problems.Add("'Analysis:Anthropic' limits and timeouts must be positive (MaxRetries may be 0).");
+        }
+
+        return problems;
+    }
 }
 
 // What the UI may show about the active analyzer. Contains no secrets.
