@@ -1,3 +1,4 @@
+using ClientPulse.Api.Assessments;
 using ClientPulse.Api.Data;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
@@ -10,12 +11,21 @@ public static class ClientEndpoints
     {
         var group = app.MapGroup("/api/clients").WithTags("Clients");
 
-        group.MapGet("/", async (ClientPulseDbContext db, CancellationToken cancellationToken) =>
-            await db.Clients
-                .AsNoTracking()
-                .OrderBy(client => client.Name)
-                .Select(client => new ClientSummary(client.Id, client.Name, client.Industry))
-                .ToListAsync(cancellationToken))
+        group.MapGet("/", async (ClientPulseDbContext db, AssessmentService assessments, CancellationToken cancellationToken) =>
+            {
+                var clients = await db.Clients
+                    .AsNoTracking()
+                    .OrderBy(client => client.Name)
+                    .Select(client => new { client.Id, client.Name, client.Industry })
+                    .ToListAsync(cancellationToken);
+
+                var latest = await assessments.GetLatestByClientAsync(cancellationToken);
+
+                return clients
+                    .Select(client => new ClientSummary(
+                        client.Id, client.Name, client.Industry, latest.GetValueOrDefault(client.Id)))
+                    .ToList();
+            })
             .WithName("GetClients");
 
         group.MapGet("/{id:int}", async Task<Results<Ok<ClientDetail>, ProblemHttpResult>> (
@@ -35,6 +45,7 @@ public static class ClientEndpoints
     }
 }
 
-public record ClientSummary(int Id, string Name, string Industry);
+// LatestAssessment is null when the client has not been assessed yet.
+public record ClientSummary(int Id, string Name, string Industry, AssessmentSummaryResponse? LatestAssessment);
 
 public record ClientDetail(int Id, string Name, string Industry, string AccountOwner);
