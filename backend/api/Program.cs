@@ -1,4 +1,6 @@
 using System.Text.Json.Serialization;
+using ClientPulse.Api.Analysis;
+using ClientPulse.Api.Assessments;
 using ClientPulse.Api.Clients;
 using ClientPulse.Api.Communications;
 using ClientPulse.Api.Data;
@@ -18,6 +20,10 @@ var connectionString = builder.Configuration.GetConnectionString("ClientPulse")
 
 builder.Services.AddDbContext<ClientPulseDbContext>(options => options.UseNpgsql(connectionString));
 
+builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddSingleton<ICommunicationAnalyzer, FixtureCommunicationAnalyzer>();
+builder.Services.AddScoped<AssessmentService>();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -30,5 +36,6 @@ app.UseHttpsRedirection();
 
 app.MapClientEndpoints();
 app.MapCommunicationEndpoints();
+app.MapAssessmentEndpoints();
 
 app.Run();

@@ -1,4 +1,5 @@
 using System.Globalization;
+using ClientPulse.Api.Assessments;
 using ClientPulse.Api.Clients;
 using ClientPulse.Api.Communications;
 using Microsoft.EntityFrameworkCore;
@@ -10,6 +11,8 @@ public class ClientPulseDbContext(DbContextOptions<ClientPulseDbContext> options
     public DbSet<Client> Clients => Set<Client>();
 
     public DbSet<Communication> Communications => Set<Communication>();
+
+    public DbSet<Assessment> Assessments => Set<Assessment>();
 
     // Seeded rows use explicit ids, which PostgreSQL identity columns do not
     // account for; new communications start above the seeded range.
@@ -40,6 +43,25 @@ public class ClientPulseDbContext(DbContextOptions<ClientPulseDbContext> options
                 .OnDelete(DeleteBehavior.Restrict);
             communication.HasIndex(c => new { c.ClientId, c.OccurredAt });
             communication.HasData(SeedCommunications);
+        });
+
+        modelBuilder.Entity<Assessment>(assessment =>
+        {
+            assessment.Property(a => a.Source).HasConversion<string>().HasMaxLength(20);
+            assessment.Property(a => a.FixtureName).HasMaxLength(AssessmentOutputRules.FixtureNameMaxLength);
+            assessment.Property(a => a.Summary).HasColumnType("text");
+            assessment.Property(a => a.AttentionLevel).HasConversion<string>().HasMaxLength(10);
+            assessment.Property(a => a.InputFingerprint).HasMaxLength(64).IsFixedLength();
+            assessment.HasOne(a => a.Client)
+                .WithMany()
+                .HasForeignKey(a => a.ClientId)
+                .OnDelete(DeleteBehavior.Restrict);
+            assessment.HasIndex(a => new { a.ClientId, a.CreatedAt });
+            assessment.OwnsMany(a => a.Signals, signals =>
+            {
+                signals.ToJson();
+                signals.Property(s => s.Kind).HasConversion<string>();
+            });
         });
     }
 
