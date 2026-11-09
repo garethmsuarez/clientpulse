@@ -7,9 +7,11 @@ function NotFound() {
   return (
     <main className="clients">
       <h1>Page not found</h1>
-      <p>
-        <Link to="/">Back to clients</Link>
-      </p>
+      <nav className="back-nav" aria-label="Breadcrumb">
+        <Link to="/" className="back-link">
+          <span aria-hidden="true">←</span> Back to clients
+        </Link>
+      </nav>
     </main>
   )
 }

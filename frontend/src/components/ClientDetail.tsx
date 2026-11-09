@@ -23,9 +23,11 @@ export function ClientDetail() {
 
   return (
     <main className="clients client-detail">
-      <p>
-        <Link to="/">← Back to clients</Link>
-      </p>
+      <nav className="back-nav" aria-label="Breadcrumb">
+        <Link to="/" className="back-link">
+          <span aria-hidden="true">←</span> Back to clients
+        </Link>
+      </nav>
       {id === null ? <ClientNotFound /> : <ClientDetailContent key={id} clientId={id} />}
     </main>
   )
