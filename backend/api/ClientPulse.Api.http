@@ -33,3 +33,16 @@ Content-Type: application/json
 }
 
 ###
+
+# Fixture analysis (not real inference). 201, 409 no communications,
+# 422 unsupported fixture input, 500 invalid analyzer output, 404 unknown client.
+POST {{ClientPulse.Api_HostAddress}}/api/clients/3/assessments
+Accept: application/json
+
+###
+
+# 200 latest assessment, 204 (no body) when none yet, 404 unknown client
+GET {{ClientPulse.Api_HostAddress}}/api/clients/3/assessments/latest
+Accept: application/json
+
+###

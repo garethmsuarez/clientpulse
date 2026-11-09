@@ -3,15 +3,15 @@ import { Link, useParams } from 'react-router'
 import { ApiError } from '../api/apiError.ts'
 import { fetchClient, type ClientDetail as ClientDetailData } from '../api/clients.ts'
 import { fetchCommunications, type Communication } from '../api/communications.ts'
+import { dateTimeFormat } from '../format.ts'
 import { AddCommunicationForm } from './AddCommunicationForm.tsx'
+import { AssessmentPanel } from './AssessmentPanel.tsx'
 
 type DetailState =
   | { status: 'loading' }
   | { status: 'not-found' }
   | { status: 'error'; message: string }
   | { status: 'loaded'; client: ClientDetailData; communications: Communication[] }
-
-const dateTimeFormat = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' })
 
 function newestFirst(a: Communication, b: Communication): number {
   return Date.parse(b.occurredAt) - Date.parse(a.occurredAt) || b.id - a.id
@@ -42,6 +42,9 @@ function ClientNotFound() {
 
 function ClientDetailContent({ clientId }: { clientId: number }) {
   const [state, setState] = useState<DetailState>({ status: 'loading' })
+  // Bumped after a communication is added so the assessment panel re-reads
+  // the latest assessment (and its "still current" flag). It never re-analyzes.
+  const [assessmentRefresh, setAssessmentRefresh] = useState(0)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -76,6 +79,7 @@ function ClientDetailContent({ clientId }: { clientId: number }) {
         ? { ...current, communications: [communication, ...current.communications].sort(newestFirst) }
         : current,
     )
+    setAssessmentRefresh((n) => n + 1)
   }
 
   return (
@@ -88,6 +92,12 @@ function ClientDetailContent({ clientId }: { clientId: number }) {
         <dd>{client.industry}</dd>
       </dl>
 
+      <AssessmentPanel
+        clientId={client.id}
+        hasCommunications={communications.length > 0}
+        refreshKey={assessmentRefresh}
+      />
+
       <section aria-labelledby="communications-heading">
         <h2 id="communications-heading">Communications</h2>
         {communications.length === 0 ? (
@@ -95,7 +105,7 @@ function ClientDetailContent({ clientId }: { clientId: number }) {
         ) : (
           <ul className="communications">
             {communications.map((communication) => (
-              <li key={communication.id}>
+              <li key={communication.id} id={`communication-${communication.id}`}>
                 <div className="communication-meta">
                   <span className="communication-type">{communication.type}</span>
                   <time dateTime={communication.occurredAt}>

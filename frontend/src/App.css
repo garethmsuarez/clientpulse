@@ -130,3 +130,89 @@
   cursor: progress;
   opacity: 0.6;
 }
+
+.assessment-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.assessment-actions button {
+  font: inherit;
+  padding: 8px 16px;
+  border: 1px solid var(--accent-border);
+  border-radius: 4px;
+  background: var(--accent-bg);
+  color: var(--text-h);
+  cursor: pointer;
+}
+
+.assessment-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.assessment-error {
+  color: #d93025;
+}
+
+.fixture-label,
+.assessment-stale {
+  padding: 8px 12px;
+  border: 1px dashed var(--border);
+  border-radius: 4px;
+  font-size: 0.875rem;
+}
+
+.fixture-label {
+  background: var(--code-bg);
+}
+
+.assessment-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 0.875rem;
+}
+
+.attention {
+  font-weight: 600;
+}
+
+.attention-high {
+  color: #d93025;
+}
+
+.attention-medium {
+  color: #b06000;
+}
+
+.attention-low {
+  color: #188038;
+}
+
+.assessment-result h3 {
+  margin: 16px 0 4px;
+  font-size: 1rem;
+  color: var(--text-h);
+}
+
+.signals {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.signals > li {
+  margin-bottom: 8px;
+}
+
+.evidence {
+  margin: 4px 0 0;
+  padding-left: 16px;
+  font-size: 0.875rem;
+}
+
+.communications li:target {
+  background: var(--accent-bg);
+}
