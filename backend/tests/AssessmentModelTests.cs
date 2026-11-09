@@ -40,4 +40,16 @@ public class AssessmentModelTests
         Assert.False(entity.FindProperty(nameof(AssessmentReview.ReviewerName))!.IsNullable);
         Assert.True(entity.GetForeignKeys().Single().IsRequired);
     }
+
+    [Fact]
+    public void Assessment_ProvenanceColumnsAreOptional()
+    {
+        using var context = CreateContext();
+        var entity = context.Model.FindEntityType(typeof(Assessment))!;
+
+        foreach (var name in new[] { nameof(Assessment.RequestedModel), nameof(Assessment.ResponseModel), nameof(Assessment.Effort) })
+        {
+            Assert.True(entity.FindProperty(name)!.IsNullable, name);
+        }
+    }
 }

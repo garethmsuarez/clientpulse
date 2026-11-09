@@ -342,3 +342,24 @@
   padding-left: 16px;
   border-left: 2px solid var(--border);
 }
+
+.ai-label {
+  padding: 8px 12px;
+  border: 1px solid var(--accent-border);
+  border-radius: 4px;
+  background: var(--accent-bg);
+  font-size: 0.875rem;
+}
+
+.provenance {
+  color: var(--text);
+}
+
+.provider-note {
+  margin: 0 0 12px;
+  font-size: 0.875rem;
+}
+
+.tag-ai {
+  border-color: var(--accent-border);
+}

@@ -21,7 +21,7 @@ var connectionString = builder.Configuration.GetConnectionString("ClientPulse")
 builder.Services.AddDbContext<ClientPulseDbContext>(options => options.UseNpgsql(connectionString));
 
 builder.Services.AddSingleton(TimeProvider.System);
-builder.Services.AddSingleton<ICommunicationAnalyzer, FixtureCommunicationAnalyzer>();
+builder.Services.AddCommunicationAnalysis(builder.Configuration);
 builder.Services.AddScoped<AssessmentService>();
 
 var app = builder.Build();
@@ -37,5 +37,6 @@ app.UseHttpsRedirection();
 app.MapClientEndpoints();
 app.MapCommunicationEndpoints();
 app.MapAssessmentEndpoints();
+app.MapAnalysisEndpoints();
 
 app.Run();

@@ -8,10 +8,21 @@ export function AssessmentView({ assessment }: { assessment: Assessment }) {
 
   return (
     <article className="assessment-result">
-      {assessment.isFixture && (
+      {assessment.isFixture ? (
         <p className="fixture-label" role="note">
-          <strong>{assessment.disclaimer ?? 'Fixture result.'}</strong>
+          <strong>{assessment.disclaimer}</strong>
           {assessment.fixtureName && <> Scenario: {assessment.fixtureName}</>}
+        </p>
+      ) : (
+        <p className="ai-label" role="note">
+          <strong>{assessment.disclaimer}</strong>{' '}
+          <span className="provenance">
+            Requested {assessment.requestedModel ?? 'unknown model'}
+            {assessment.responseModel && assessment.responseModel !== assessment.requestedModel && (
+              <>, answered by {assessment.responseModel}</>
+            )}
+            {assessment.effort && <> · {assessment.effort} effort</>}
+          </span>
         </p>
       )}
 

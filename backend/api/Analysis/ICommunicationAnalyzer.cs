@@ -2,8 +2,10 @@ using ClientPulse.Api.Communications;
 
 namespace ClientPulse.Api.Analysis;
 
-// The single application-owned seam for communication analysis. The only
-// implementation for now is the deterministic FixtureCommunicationAnalyzer.
+// The single application-owned seam for communication analysis. One
+// implementation is active, chosen by server configuration (Analysis:Provider):
+// the deterministic FixtureCommunicationAnalyzer (default) or the Claude-backed
+// ClaudeCommunicationAnalyzer. Provider SDK types never cross this interface.
 public interface ICommunicationAnalyzer
 {
     Task<AnalyzerOutcome> AnalyzeAsync(AnalysisRequest request, CancellationToken cancellationToken);
@@ -26,18 +28,36 @@ public record AnalysisCompleted(AnalysisResult Result) : AnalyzerOutcome;
 // analyzer: no predefined scenario matches the communications supplied).
 public record AnalysisUnsupported(string Reason) : AnalyzerOutcome;
 
+// The provider could not produce a usable result. Carries only a category;
+// raw provider errors and response text are never passed through.
+public record AnalysisFailed(AnalysisFailureKind Kind) : AnalyzerOutcome;
+
+public enum AnalysisFailureKind
+{
+    InvalidOutput,
+    OutputTruncated,
+    Refused,
+    Unavailable,
+    Timeout,
+    Configuration,
+}
+
 public record AnalysisResult(
     AnalysisSource Source,
     string? FixtureName,
     string Summary,
     AttentionLevel AttentionLevel,
-    IReadOnlyList<AnalysisSignal> Signals);
+    IReadOnlyList<AnalysisSignal> Signals,
+    string? RequestedModel = null,
+    string? ResponseModel = null,
+    string? Effort = null);
 
 public record AnalysisSignal(SignalKind Kind, string Description, IReadOnlyList<int> EvidenceCommunicationIds);
 
 public enum AnalysisSource
 {
     Fixture,
+    Anthropic,
 }
 
 public enum AttentionLevel

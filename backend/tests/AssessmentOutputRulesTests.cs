@@ -76,4 +76,21 @@ public class AssessmentOutputRulesTests
     {
         Assert.NotEmpty(AssessmentOutputRules.Validate(Valid() with { FixtureName = null }, InputIds));
     }
+
+    [Fact]
+    public void ProviderResultWithoutProvenance_IsRejected()
+    {
+        var provider = Valid() with
+        {
+            Source = AnalysisSource.Anthropic,
+            FixtureName = null,
+            RequestedModel = "claude-sonnet-5-5",
+            ResponseModel = "claude-sonnet-5-5",
+            Effort = "medium",
+        };
+
+        Assert.Empty(AssessmentOutputRules.Validate(provider, InputIds));
+        Assert.NotEmpty(AssessmentOutputRules.Validate(provider with { RequestedModel = null }, InputIds));
+        Assert.NotEmpty(AssessmentOutputRules.Validate(provider with { Effort = " " }, InputIds));
+    }
 }

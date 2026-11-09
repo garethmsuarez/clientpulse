@@ -18,8 +18,16 @@ public class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         Environment.GetEnvironmentVariable("ConnectionStrings__ClientPulseTests")
         ?? $"Host=localhost;Port=5433;Database={TestDatabaseName};Username=clientpulse;Password=clientpulse_dev_only";
 
-    protected override void ConfigureWebHost(IWebHostBuilder builder) =>
+    protected override void ConfigureWebHost(IWebHostBuilder builder)
+    {
         builder.UseSetting("ConnectionStrings:ClientPulse", ConnectionString);
+
+        // Tests never call a live AI provider, even if a developer's user
+        // secrets select Anthropic. Tests that need provider behaviour swap in
+        // a fake ICommunicationAnalyzer.
+        builder.UseSetting("Analysis:Provider", "Fixture");
+        builder.UseSetting("Anthropic:ApiKey", "");
+    }
 
     public async Task InitializeAsync()
     {

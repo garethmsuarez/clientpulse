@@ -23,6 +23,7 @@ public static class AssessmentEndpoints
                     AnalyzeStatus.ClientNotFound => ClientProblems.NotFound(clientId),
                     AnalyzeStatus.NoCommunications => AssessmentProblems.NoCommunications(),
                     AnalyzeStatus.Unsupported => AssessmentProblems.UnsupportedInput(result.Reason!),
+                    AnalyzeStatus.ProviderFailed => AssessmentProblems.ProviderFailure(result.FailureKind!.Value),
                     _ => AssessmentProblems.InvalidAnalyzerOutput(),
                 };
             })

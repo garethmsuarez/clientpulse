@@ -72,3 +72,9 @@ Content-Type: application/json
 }
 
 ###
+
+# Active analyzer (Fixture or Anthropic, with model and effort). No secrets.
+GET {{ClientPulse.Api_HostAddress}}/api/analysis/provider
+Accept: application/json
+
+###

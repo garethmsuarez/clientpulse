@@ -9,6 +9,7 @@ public static class AssessmentOutputRules
     public const int SummaryMaxLength = 2_000;
     public const int SignalDescriptionMaxLength = 500;
     public const int FixtureNameMaxLength = 100;
+    public const int ModelNameMaxLength = 100;
 
     public static IReadOnlyList<string> Validate(AnalysisResult result, IReadOnlySet<int> inputCommunicationIds)
     {
@@ -23,6 +24,13 @@ public static class AssessmentOutputRules
             (string.IsNullOrWhiteSpace(result.FixtureName) || result.FixtureName.Length > FixtureNameMaxLength))
         {
             errors.Add("Fixture results must name their fixture.");
+        }
+
+        if (result.Source == AnalysisSource.Anthropic &&
+            (string.IsNullOrWhiteSpace(result.RequestedModel) || result.RequestedModel.Length > ModelNameMaxLength ||
+             result.ResponseModel?.Length > ModelNameMaxLength || string.IsNullOrWhiteSpace(result.Effort)))
+        {
+            errors.Add("Provider results must record the requested model and effort.");
         }
 
         if (string.IsNullOrWhiteSpace(result.Summary))
