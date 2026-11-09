@@ -1,7 +1,7 @@
 # Current status
 
 - Milestones 1–5 are complete.
-- Next: milestone 6, demo reliability, tests, and presentation preparation.
+- Next: milestone 6, frontend styling cleanup.
 - API: `GET /api/clients`, `GET /api/clients/{id}`,
   `GET`/`POST /api/clients/{clientId}/communications`, and
   assessments under `/api/clients/{clientId}/assessments`: `POST` (analyze),
@@ -65,9 +65,15 @@ retries (2), plus a 120 s overall deadline. Failures return 502
 5. Optional real AI provider. (complete)
    - Evaluate Claude Sonnet 5.5 against the synthetic scenarios before
      considering Opus.
-6. Demo reliability, tests, and presentation preparation.
+6. Clean up the styling of the frontend, ideally with a color scheme similar
+   to https://phase2online.com.
+7. Break up the client view into smaller pieces. It currently shows a lot of
+   information on one page, with multiple sections for entering different
+   things.
+
+# Future
+
+1. Demo reliability, tests, and presentation preparation.
    - Consider isolating endpoint tests in a throwaway Postgres container
      (Testcontainers) instead of the shared Compose `clientpulse_tests`
      database; only `backend/tests/ApiFactory.cs` should need to change.
-   - Clean up the UI appearance and styling (layout, spacing, typography,
-     and consistent visual treatment across the list, detail, and form).

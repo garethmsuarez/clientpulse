@@ -33,12 +33,58 @@ identifying concerning signals, and recording human review.
 
 ## Project layout
 
-- `backend/api/`: ASP.NET Core Web API targeting .NET 10; currently a starter API.
+- `backend/api/`: ASP.NET Core Minimal API targeting .NET 10, organized by feature (`Clients/`, `Communications/`, `Assessments/`, `Analysis/`), with EF Core mapping per feature and demo seed data in `Data/`.
 - `backend/tests/`: xUnit tests for the backend.
-- `frontend/`: React 19 + TypeScript + Vite application; currently a starter UI.
+- `frontend/`: React 19 + TypeScript + Vite application with `react-router`: client list, client detail, communication entry, assessment panel with review form, and assessment history.
 - `compose.yaml`: local PostgreSQL 17 service, exposed on `localhost:5433`.
 
 Do not assume product behavior or domain architecture that is not present in the code. Follow the established patterns in the files you touch, and keep changes focused.
+
+## Running the application
+
+### Prerequisites
+- .NET 10 SDK
+- Node.js 20.19+ or 22.12+ with npm (required by Vite 8)
+- Docker and Docker Compose
+
+### Start the application
+
+1. Start the database (runs in the background):
+   ```sh
+   docker compose up -d postgres
+   ```
+
+2. First run only: set the local connection string (not committed) and apply
+   the migrations. The credentials are the local-only values from `compose.yaml`.
+   ```sh
+   dotnet user-secrets set "ConnectionStrings:ClientPulse" "Host=localhost;Port=5433;Database=clientpulse;Username=clientpulse;Password=clientpulse_dev_only" --project backend/api
+   dotnet tool restore
+   dotnet ef database update --project backend/api
+   ```
+   Later, run `dotnet ef database update --project backend/api` again after
+   pulling new migrations.
+
+3. Start the backend API (from repository root):
+   ```sh
+   dotnet run --project backend/api
+   ```
+   This uses the `http` launch profile: the API listens on `http://localhost:5114`,
+   with the OpenAPI document at `/openapi/v1.json`. The Vite dev server proxies
+   `/api` to this address.
+
+4. Start the frontend (in a separate terminal, from repository root):
+   ```sh
+   npm --prefix frontend run dev
+   ```
+   The React app opens on `http://localhost:5173`.
+
+### Verify it's working
+- Frontend: http://localhost:5173
+- API: http://localhost:5114/openapi/v1.json (view available endpoints)
+
+### Stop the application
+- Press `Ctrl+C` in each terminal window.
+- Stop the database: `docker compose down`
 
 ## Common commands
 
