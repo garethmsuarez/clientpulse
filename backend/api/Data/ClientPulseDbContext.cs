@@ -14,6 +14,8 @@ public class ClientPulseDbContext(DbContextOptions<ClientPulseDbContext> options
 
     public DbSet<Assessment> Assessments => Set<Assessment>();
 
+    public DbSet<AssessmentReview> AssessmentReviews => Set<AssessmentReview>();
+
     // Seeded rows use explicit ids, which PostgreSQL identity columns do not
     // account for; new communications start above the seeded range.
     public const int FirstGeneratedCommunicationId = 1000;
@@ -62,6 +64,19 @@ public class ClientPulseDbContext(DbContextOptions<ClientPulseDbContext> options
                 signals.ToJson();
                 signals.Property(s => s.Kind).HasConversion<string>();
             });
+        });
+
+        modelBuilder.Entity<AssessmentReview>(review =>
+        {
+            review.Property(r => r.Decision).HasConversion<string>().HasMaxLength(10);
+            review.Property(r => r.ReviewedAttentionLevel).HasConversion<string>().HasMaxLength(10);
+            review.Property(r => r.Notes).HasColumnType("text");
+            review.Property(r => r.ReviewerName).HasMaxLength(ReviewRules.ReviewerNameMaxLength);
+            review.HasOne(r => r.Assessment)
+                .WithMany()
+                .HasForeignKey(r => r.AssessmentId)
+                .OnDelete(DeleteBehavior.Restrict);
+            review.HasIndex(r => new { r.AssessmentId, r.CreatedAt });
         });
     }
 

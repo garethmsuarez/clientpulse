@@ -5,6 +5,7 @@ import { fetchClient, type ClientDetail as ClientDetailData } from '../api/clien
 import { fetchCommunications, type Communication } from '../api/communications.ts'
 import { dateTimeFormat } from '../format.ts'
 import { AddCommunicationForm } from './AddCommunicationForm.tsx'
+import { AssessmentHistory } from './AssessmentHistory.tsx'
 import { AssessmentPanel } from './AssessmentPanel.tsx'
 
 type DetailState =
@@ -44,8 +45,8 @@ function ClientNotFound() {
 
 function ClientDetailContent({ clientId }: { clientId: number }) {
   const [state, setState] = useState<DetailState>({ status: 'loading' })
-  // Bumped after a communication is added so the assessment panel re-reads
-  // the latest assessment (and its "still current" flag). It never re-analyzes.
+  // Bumped after a communication, assessment, or review is saved so the
+  // assessment panel and history re-read saved data. It never re-analyzes.
   const [assessmentRefresh, setAssessmentRefresh] = useState(0)
 
   useEffect(() => {
@@ -98,6 +99,7 @@ function ClientDetailContent({ clientId }: { clientId: number }) {
         clientId={client.id}
         hasCommunications={communications.length > 0}
         refreshKey={assessmentRefresh}
+        onChanged={() => setAssessmentRefresh((n) => n + 1)}
       />
 
       <section aria-labelledby="communications-heading">
@@ -126,6 +128,8 @@ function ClientDetailContent({ clientId }: { clientId: number }) {
         <h2 id="add-communication-heading">Add communication</h2>
         <AddCommunicationForm clientId={client.id} onCreated={handleCreated} />
       </section>
+
+      <AssessmentHistory clientId={client.id} refreshKey={assessmentRefresh} />
     </>
   )
 }

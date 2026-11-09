@@ -18,8 +18,8 @@ public static class AssessmentEndpoints
 
                 return result.Status switch
                 {
-                    // No single-assessment route exists yet, so no Location header is sent.
-                    AnalyzeStatus.Created => TypedResults.Created((string?)null, result.Assessment!),
+                    AnalyzeStatus.Created => TypedResults.Created(
+                        $"/api/clients/{clientId}/assessments/{result.Assessment!.Id}", result.Assessment),
                     AnalyzeStatus.ClientNotFound => ClientProblems.NotFound(clientId),
                     AnalyzeStatus.NoCommunications => AssessmentProblems.NoCommunications(),
                     AnalyzeStatus.Unsupported => AssessmentProblems.UnsupportedInput(result.Reason!),
@@ -28,10 +28,22 @@ public static class AssessmentEndpoints
             })
             .WithName("AnalyzeClientCommunications");
 
+        group.MapGet("/", async Task<Results<Ok<List<AssessmentSummaryResponse>>, ProblemHttpResult>> (
+                int clientId, ClientPulseDbContext db, AssessmentService service, CancellationToken cancellationToken) =>
+            {
+                if (!await ClientExistsAsync(db, clientId, cancellationToken))
+                {
+                    return ClientProblems.NotFound(clientId);
+                }
+
+                return TypedResults.Ok(await service.GetHistoryAsync(clientId, cancellationToken));
+            })
+            .WithName("GetClientAssessments");
+
         group.MapGet("/latest", async Task<Results<Ok<AssessmentResponse>, NoContent, ProblemHttpResult>> (
                 int clientId, ClientPulseDbContext db, AssessmentService service, CancellationToken cancellationToken) =>
             {
-                if (!await db.Clients.AnyAsync(client => client.Id == clientId, cancellationToken))
+                if (!await ClientExistsAsync(db, clientId, cancellationToken))
                 {
                     return ClientProblems.NotFound(clientId);
                 }
@@ -41,6 +53,55 @@ public static class AssessmentEndpoints
             })
             .WithName("GetLatestClientAssessment");
 
+        group.MapGet("/{assessmentId:int}", async Task<Results<Ok<AssessmentResponse>, ProblemHttpResult>> (
+                int clientId,
+                int assessmentId,
+                ClientPulseDbContext db,
+                AssessmentService service,
+                CancellationToken cancellationToken) =>
+            {
+                if (!await ClientExistsAsync(db, clientId, cancellationToken))
+                {
+                    return ClientProblems.NotFound(clientId);
+                }
+
+                var assessment = await service.GetAsync(clientId, assessmentId, cancellationToken);
+                return assessment is null
+                    ? AssessmentProblems.AssessmentNotFound(assessmentId)
+                    : TypedResults.Ok(assessment);
+            })
+            .WithName("GetClientAssessment");
+
+        group.MapPost("/{assessmentId:int}/reviews",
+                async Task<Results<Created<ReviewResponse>, ValidationProblem, ProblemHttpResult>> (
+                    int clientId,
+                    int assessmentId,
+                    CreateReviewRequest request,
+                    ClientPulseDbContext db,
+                    AssessmentService service,
+                    CancellationToken cancellationToken) =>
+                {
+                    if (!await ClientExistsAsync(db, clientId, cancellationToken))
+                    {
+                        return ClientProblems.NotFound(clientId);
+                    }
+
+                    var result = await service.AddReviewAsync(clientId, assessmentId, request, cancellationToken);
+
+                    return result.Status switch
+                    {
+                        // No single-review route exists, so no Location header is sent.
+                        ReviewSubmitStatus.Created => TypedResults.Created((string?)null, result.Review!),
+                        ReviewSubmitStatus.NotFound => AssessmentProblems.AssessmentNotFound(assessmentId),
+                        ReviewSubmitStatus.NotLatest => AssessmentProblems.NotLatestAssessment(),
+                        _ => TypedResults.ValidationProblem(result.Errors!),
+                    };
+                })
+            .WithName("CreateAssessmentReview");
+
         return app;
     }
+
+    private static Task<bool> ClientExistsAsync(ClientPulseDbContext db, int clientId, CancellationToken cancellationToken) =>
+        db.Clients.AnyAsync(client => client.Id == clientId, cancellationToken);
 }

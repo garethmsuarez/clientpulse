@@ -15,6 +15,19 @@ public enum AnalyzeStatus
 
 public record AnalyzeResult(AnalyzeStatus Status, AssessmentResponse? Assessment = null, string? Reason = null);
 
+public enum ReviewSubmitStatus
+{
+    Created,
+    NotFound,
+    NotLatest,
+    Invalid,
+}
+
+public record ReviewSubmitResult(
+    ReviewSubmitStatus Status,
+    ReviewResponse? Review = null,
+    Dictionary<string, string[]>? Errors = null);
+
 // Runs one synchronous analysis: load the client's communications, invoke the
 // analyzer, validate its output, and insert a new assessment. Any failure
 // returns before saving, so previous assessments are never changed.
@@ -106,15 +119,118 @@ public class AssessmentService(
     // Null when the client has no assessment yet. Callers check the client exists.
     public async Task<AssessmentResponse?> GetLatestAsync(int clientId, CancellationToken cancellationToken)
     {
+        var latestId = await LatestAssessmentIdAsync(clientId, cancellationToken);
+        return latestId is null ? null : await GetAsync(clientId, latestId.Value, cancellationToken);
+    }
+
+    // Null when the assessment does not exist or belongs to another client.
+    public async Task<AssessmentResponse?> GetAsync(int clientId, int assessmentId, CancellationToken cancellationToken)
+    {
         var assessment = await db.Assessments
+            .AsNoTracking()
+            .SingleOrDefaultAsync(a => a.Id == assessmentId && a.ClientId == clientId, cancellationToken);
+
+        return assessment is null ? null : await ToResponseAsync(assessment, cancellationToken);
+    }
+
+    // Newest first. Callers check the client exists.
+    public async Task<List<AssessmentSummaryResponse>> GetHistoryAsync(int clientId, CancellationToken cancellationToken)
+    {
+        var assessments = await db.Assessments
             .AsNoTracking()
             .Where(a => a.ClientId == clientId)
             .OrderByDescending(a => a.CreatedAt)
             .ThenByDescending(a => a.Id)
+            .Select(a => new
+            {
+                a.Id,
+                a.CreatedAt,
+                a.Source,
+                a.FixtureName,
+                a.AttentionLevel,
+                a.InputFingerprint,
+                LatestReview = db.AssessmentReviews
+                    .Where(r => r.AssessmentId == a.Id)
+                    .OrderByDescending(r => r.CreatedAt)
+                    .ThenByDescending(r => r.Id)
+                    .FirstOrDefault(),
+            })
+            .ToListAsync(cancellationToken);
+
+        var currentFingerprint = await CurrentFingerprintAsync(clientId, cancellationToken);
+        var latestId = assessments.FirstOrDefault()?.Id;
+
+        return assessments
+            .Select(a => new AssessmentSummaryResponse(
+                a.Id,
+                a.CreatedAt,
+                a.Source,
+                a.Source == AnalysisSource.Fixture,
+                a.FixtureName,
+                a.AttentionLevel,
+                a.InputFingerprint == currentFingerprint,
+                a.Id == latestId,
+                ReviewOutcome.Status(a.LatestReview),
+                ReviewOutcome.ApprovedLevel(a.AttentionLevel, a.LatestReview),
+                a.LatestReview is null ? null : ReviewOutcome.ToResponse(a.LatestReview)))
+            .ToList();
+    }
+
+    // Only the client's newest assessment can be reviewed; older ones are
+    // read-only history. Reviews are appended, never edited or deleted.
+    public async Task<ReviewSubmitResult> AddReviewAsync(
+        int clientId, int assessmentId, CreateReviewRequest request, CancellationToken cancellationToken)
+    {
+        var assessment = await db.Assessments
+            .AsNoTracking()
+            .Where(a => a.Id == assessmentId && a.ClientId == clientId)
+            .Select(a => new { a.Id, a.AttentionLevel })
+            .SingleOrDefaultAsync(cancellationToken);
+
+        if (assessment is null)
+        {
+            return new ReviewSubmitResult(ReviewSubmitStatus.NotFound);
+        }
+
+        if (await LatestAssessmentIdAsync(clientId, cancellationToken) != assessment.Id)
+        {
+            return new ReviewSubmitResult(ReviewSubmitStatus.NotLatest);
+        }
+
+        if (!ReviewRules.TryValidate(request, assessment.AttentionLevel, out var valid, out var errors))
+        {
+            return new ReviewSubmitResult(ReviewSubmitStatus.Invalid, Errors: errors);
+        }
+
+        var review = new AssessmentReview
+        {
+            AssessmentId = assessment.Id,
+            CreatedAt = timeProvider.GetUtcNow(),
+            Decision = valid.Decision,
+            ReviewedAttentionLevel = valid.ReviewedAttentionLevel,
+            Notes = valid.Notes,
+            ReviewerName = valid.ReviewerName,
+        };
+
+        db.AssessmentReviews.Add(review);
+        await db.SaveChangesAsync(cancellationToken);
+
+        return new ReviewSubmitResult(ReviewSubmitStatus.Created, ReviewOutcome.ToResponse(review));
+    }
+
+    private Task<int?> LatestAssessmentIdAsync(int clientId, CancellationToken cancellationToken) =>
+        db.Assessments
+            .Where(a => a.ClientId == clientId)
+            .OrderByDescending(a => a.CreatedAt)
+            .ThenByDescending(a => a.Id)
+            .Select(a => (int?)a.Id)
             .FirstOrDefaultAsync(cancellationToken);
 
-        return assessment is null ? null : await ToResponseAsync(assessment, cancellationToken);
-    }
+    private async Task<string> CurrentFingerprintAsync(int clientId, CancellationToken cancellationToken) =>
+        InputFingerprint.Compute(await db.Communications
+            .AsNoTracking()
+            .Where(c => c.ClientId == clientId)
+            .ToListAsync(cancellationToken));
 
     private async Task<AssessmentResponse> ToResponseAsync(Assessment assessment, CancellationToken cancellationToken)
     {
@@ -122,6 +238,15 @@ public class AssessmentService(
             .AsNoTracking()
             .Where(c => c.ClientId == assessment.ClientId)
             .ToListAsync(cancellationToken);
+
+        var reviews = await db.AssessmentReviews
+            .AsNoTracking()
+            .Where(r => r.AssessmentId == assessment.Id)
+            .OrderByDescending(r => r.CreatedAt)
+            .ThenByDescending(r => r.Id)
+            .ToListAsync(cancellationToken);
+
+        var latestId = await LatestAssessmentIdAsync(assessment.ClientId, cancellationToken);
 
         var evidenceById = current
             .Where(c => assessment.AnalyzedCommunicationIds.Contains(c.Id))
@@ -135,6 +260,7 @@ public class AssessmentService(
             .ToList();
 
         var isFixture = assessment.Source == AnalysisSource.Fixture;
+        var latestReview = reviews.FirstOrDefault();
 
         return new AssessmentResponse(
             assessment.Id,
@@ -149,6 +275,10 @@ public class AssessmentService(
             Signals(SignalKind.Concern),
             Signals(SignalKind.Positive),
             assessment.AnalyzedCommunicationIds,
-            InputFingerprint.Compute(current) == assessment.InputFingerprint);
+            InputFingerprint.Compute(current) == assessment.InputFingerprint,
+            assessment.Id == latestId,
+            ReviewOutcome.Status(latestReview),
+            ReviewOutcome.ApprovedLevel(assessment.AttentionLevel, latestReview),
+            reviews.Select(ReviewOutcome.ToResponse).ToList());
     }
 }

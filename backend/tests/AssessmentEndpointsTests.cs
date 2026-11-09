@@ -4,7 +4,6 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using ClientPulse.Api.Analysis;
 using ClientPulse.Api.Assessments;
-using ClientPulse.Api.Clients;
 using ClientPulse.Api.Communications;
 using ClientPulse.Api.Data;
 using Microsoft.AspNetCore.Mvc;
@@ -26,42 +25,9 @@ public class AssessmentEndpointsTests(ApiFactory factory)
 
     private readonly HttpClient _client = factory.CreateClient();
 
-    private static FixtureScenario Scenario(string name) => FixtureScenarios.All.Single(s => s.Name == name);
+    private static FixtureScenario Scenario(string name) => TestClients.Scenario(name);
 
-    // Creates a client whose communications are copies of a scenario's seed
-    // communications. The copies get new database-generated ids.
-    private async Task<int> CreateClientAsync(FixtureScenario? scenario)
-    {
-        using var scope = factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<ClientPulseDbContext>();
-
-        var client = new Client
-        {
-            Name = $"Synthetic test client {Guid.NewGuid():N}",
-            Industry = "Testing",
-            AccountOwner = "Synthetic Owner",
-        };
-        db.Clients.Add(client);
-        await db.SaveChangesAsync();
-
-        if (scenario is not null)
-        {
-            db.Communications.AddRange(scenario.CommunicationSubjects
-                .Select(subject => ClientPulseDbContext.SeedCommunications.Single(c => c.Subject == subject))
-                .Select(seed => new Communication
-                {
-                    ClientId = client.Id,
-                    Type = seed.Type,
-                    OccurredAt = seed.OccurredAt,
-                    Subject = seed.Subject,
-                    Body = seed.Body,
-                    CreatedAt = seed.CreatedAt,
-                }));
-            await db.SaveChangesAsync();
-        }
-
-        return client.Id;
-    }
+    private Task<int> CreateClientAsync(FixtureScenario? scenario) => TestClients.CreateAsync(factory, scenario);
 
     private async Task<int> AssessmentCountAsync(int clientId)
     {

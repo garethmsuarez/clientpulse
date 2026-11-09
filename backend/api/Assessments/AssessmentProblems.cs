@@ -8,6 +8,7 @@ public static class AssessmentProblems
     public const string NoCommunicationsCode = "no-communications";
     public const string UnsupportedInputCode = "unsupported-input";
     public const string InvalidAnalyzerOutputCode = "invalid-analyzer-output";
+    public const string NotLatestAssessmentCode = "not-latest-assessment";
 
     public static ProblemHttpResult NoCommunications() => Problem(
         StatusCodes.Status409Conflict,
@@ -28,6 +29,18 @@ public static class AssessmentProblems
         "Analysis failed",
         "The analyzer returned an invalid result. No assessment was saved.",
         InvalidAnalyzerOutputCode);
+
+    public static ProblemHttpResult AssessmentNotFound(int assessmentId) => Problem(
+        StatusCodes.Status404NotFound,
+        "Assessment not found",
+        $"No assessment with id {assessmentId} for this client.",
+        "assessment-not-found");
+
+    public static ProblemHttpResult NotLatestAssessment() => Problem(
+        StatusCodes.Status409Conflict,
+        "Assessment is not the latest",
+        "A newer assessment exists for this client. Only the latest assessment can be reviewed.",
+        NotLatestAssessmentCode);
 
     private static ProblemHttpResult Problem(int status, string title, string detail, string code) =>
         TypedResults.Problem(
