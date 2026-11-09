@@ -1,12 +1,18 @@
 import { toApiError } from './apiError.ts'
+import type { AssessmentSummary } from './assessments.ts'
 
 export type ClientSummary = {
   id: number
   name: string
   industry: string
+  // Null when the client has not been assessed yet.
+  latestAssessment: AssessmentSummary | null
 }
 
-export type ClientDetail = ClientSummary & {
+export type ClientDetail = {
+  id: number
+  name: string
+  industry: string
   accountOwner: string
 }
 

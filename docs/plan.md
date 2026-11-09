@@ -1,8 +1,9 @@
 # Current status
 
-- Milestones 1–7 are complete.
-- Next: milestone 8, assessment information and sorting on the client list.
-- API: `GET /api/clients`, `GET /api/clients/{id}`,
+- Milestones 1–8 are complete.
+- Next: see Future (demo reliability, tests, and presentation preparation).
+- API: `GET /api/clients` (each client with its latest assessment summary, or
+  null), `GET /api/clients/{id}`,
   `GET`/`POST /api/clients/{clientId}/communications`, and
   assessments under `/api/clients/{clientId}/assessments`: `POST` (analyze),
   `GET` (history), `GET latest`, `GET {assessmentId}`, and
@@ -23,7 +24,11 @@
   Reviewer names are self-reported and unverified. This is a review
   history, not a verified audit trail.
 - Frontend: React with `react-router`, styled with a phase2online.com-inspired
-  palette (light theme). The client view is split into nested routes under
+  palette (light theme). The client list shows each client's latest
+  assessment (reviewed severity, Fixture/AI, out-of-date, review outcome,
+  date) and sorts by client, severity, or assessed date; the sort is kept in
+  the URL (default: severity, highest first). The client view is split into
+  nested routes under
   `/clients/:clientId`: Overview (landing summary), Assessment (analyze,
   latest result, expandable review form), Communications (list; evidence
   links highlight the cited item), Add communication (own page), History
@@ -77,6 +82,9 @@ retries (2), plus a 120 s overall deadline. Failures return 502
    things. (complete)
 8. Add assessment information on the client list view, including the latest
    assessment status, and allow sorting by assessment severity and date.
+   (complete) Severity sorts by the reviewer-approved level where one exists,
+   the analyzer level while unreviewed, then rejected assessments, then
+   clients never assessed.
 
 # Future
 

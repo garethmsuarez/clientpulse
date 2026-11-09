@@ -35,7 +35,7 @@ identifying concerning signals, and recording human review.
 
 - `backend/api/`: ASP.NET Core Minimal API targeting .NET 10, organized by feature (`Clients/`, `Communications/`, `Assessments/`, `Analysis/`), with EF Core mapping per feature and demo seed data in `Data/`.
 - `backend/tests/`: xUnit tests for the backend.
-- `frontend/`: React 19 + TypeScript + Vite application with `react-router`: client list, and a client view split into nested routes (Overview, Assessment, Communications, History) under `src/components/client/`. Tests use Vitest and React Testing Library (`src/**/*.test.tsx`, helpers in `src/test/`).
+- `frontend/`: React 19 + TypeScript + Vite application with `react-router`: a sortable client list with each client's latest assessment, and a client view split into nested routes (Overview, Assessment, Communications, History) under `src/components/client/`. Tests use Vitest and React Testing Library (`src/**/*.test.tsx`, helpers in `src/test/`).
 - `compose.yaml`: local PostgreSQL 17 service, exposed on `localhost:5433`.
 
 Do not assume product behavior or domain architecture that is not present in the code. Follow the established patterns in the files you touch, and keep changes focused.

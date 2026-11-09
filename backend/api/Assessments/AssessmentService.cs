@@ -159,47 +159,90 @@ public class AssessmentService(
     // Newest first. Callers check the client exists.
     public async Task<List<AssessmentSummaryResponse>> GetHistoryAsync(int clientId, CancellationToken cancellationToken)
     {
-        var assessments = await db.Assessments
+        // Order before projecting: EF cannot translate ordering on members of
+        // a constructor-projected record.
+        var rows = await SummaryRows(db.Assessments
+                .Where(a => a.ClientId == clientId)
+                .OrderByDescending(a => a.CreatedAt)
+                .ThenByDescending(a => a.Id))
+            .ToListAsync(cancellationToken);
+
+        var currentFingerprint = await CurrentFingerprintAsync(clientId, cancellationToken);
+        var latestId = rows.FirstOrDefault()?.Id;
+
+        return rows.Select(row => ToSummary(row, row.InputFingerprint == currentFingerprint, row.Id == latestId)).ToList();
+    }
+
+    // Each client's latest assessment, keyed by client id; clients without one
+    // are absent. Two queries in total, however many clients there are.
+    public async Task<Dictionary<int, AssessmentSummaryResponse>> GetLatestByClientAsync(CancellationToken cancellationToken)
+    {
+        var latest = db.Assessments.Where(a => !db.Assessments.Any(newer =>
+            newer.ClientId == a.ClientId &&
+            (newer.CreatedAt > a.CreatedAt || (newer.CreatedAt == a.CreatedAt && newer.Id > a.Id))));
+
+        var rows = await SummaryRows(latest).ToListAsync(cancellationToken);
+        if (rows.Count == 0)
+        {
+            return [];
+        }
+
+        var clientIds = rows.Select(row => row.ClientId).ToList();
+        var communications = await db.Communications
             .AsNoTracking()
-            .Where(a => a.ClientId == clientId)
-            .OrderByDescending(a => a.CreatedAt)
-            .ThenByDescending(a => a.Id)
-            .Select(a => new
-            {
+            .Where(c => clientIds.Contains(c.ClientId))
+            .ToListAsync(cancellationToken);
+        var fingerprints = communications
+            .GroupBy(c => c.ClientId)
+            .ToDictionary(group => group.Key, group => InputFingerprint.Compute(group));
+
+        return rows.ToDictionary(
+            row => row.ClientId,
+            row => ToSummary(row, fingerprints.GetValueOrDefault(row.ClientId) == row.InputFingerprint, isLatest: true));
+    }
+
+    private sealed record SummaryRow(
+        int Id,
+        int ClientId,
+        DateTimeOffset CreatedAt,
+        AnalysisSource Source,
+        string? FixtureName,
+        string? ResponseModel,
+        AttentionLevel AttentionLevel,
+        string InputFingerprint,
+        AssessmentReview? LatestReview);
+
+    private IQueryable<SummaryRow> SummaryRows(IQueryable<Assessment> assessments) =>
+        assessments
+            .AsNoTracking()
+            .Select(a => new SummaryRow(
                 a.Id,
+                a.ClientId,
                 a.CreatedAt,
                 a.Source,
                 a.FixtureName,
                 a.ResponseModel,
                 a.AttentionLevel,
                 a.InputFingerprint,
-                LatestReview = db.AssessmentReviews
+                db.AssessmentReviews
                     .Where(r => r.AssessmentId == a.Id)
                     .OrderByDescending(r => r.CreatedAt)
                     .ThenByDescending(r => r.Id)
-                    .FirstOrDefault(),
-            })
-            .ToListAsync(cancellationToken);
+                    .FirstOrDefault()));
 
-        var currentFingerprint = await CurrentFingerprintAsync(clientId, cancellationToken);
-        var latestId = assessments.FirstOrDefault()?.Id;
-
-        return assessments
-            .Select(a => new AssessmentSummaryResponse(
-                a.Id,
-                a.CreatedAt,
-                a.Source,
-                a.Source == AnalysisSource.Fixture,
-                a.FixtureName,
-                a.ResponseModel,
-                a.AttentionLevel,
-                a.InputFingerprint == currentFingerprint,
-                a.Id == latestId,
-                ReviewOutcome.Status(a.LatestReview),
-                ReviewOutcome.ApprovedLevel(a.AttentionLevel, a.LatestReview),
-                a.LatestReview is null ? null : ReviewOutcome.ToResponse(a.LatestReview)))
-            .ToList();
-    }
+    private static AssessmentSummaryResponse ToSummary(SummaryRow row, bool isCurrent, bool isLatest) => new(
+        row.Id,
+        row.CreatedAt,
+        row.Source,
+        row.Source == AnalysisSource.Fixture,
+        row.FixtureName,
+        row.ResponseModel,
+        row.AttentionLevel,
+        isCurrent,
+        isLatest,
+        ReviewOutcome.Status(row.LatestReview),
+        ReviewOutcome.ApprovedLevel(row.AttentionLevel, row.LatestReview),
+        row.LatestReview is null ? null : ReviewOutcome.ToResponse(row.LatestReview));
 
     // Only the client's newest assessment can be reviewed; older ones are
     // read-only history. Reviews are appended, never edited or deleted.

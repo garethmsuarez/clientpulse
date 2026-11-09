@@ -628,3 +628,63 @@
     padding: 8px 10px;
   }
 }
+
+/* ---- Client list: assessment columns and sorting ---- */
+
+.table-scroll {
+  overflow-x: auto;
+  border-radius: var(--radius);
+}
+
+.clients th[aria-sort] {
+  padding: 0;
+}
+
+.sort-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 12px 16px;
+  border: none;
+  background: none;
+  font: inherit;
+  color: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sort-button:hover {
+  color: var(--indigo);
+}
+
+.clients th[aria-sort='ascending'] .sort-button,
+.clients th[aria-sort='descending'] .sort-button {
+  color: var(--indigo);
+}
+
+.sort-indicator {
+  font-size: 0.75rem;
+}
+
+.severity-cell {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.attention-rejected {
+  background: var(--surface-subtle);
+  color: var(--danger);
+}
+
+.muted {
+  color: var(--text-muted);
+}
+
+.clients td {
+  white-space: nowrap;
+}
