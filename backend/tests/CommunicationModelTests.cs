@@ -34,19 +34,19 @@ public class CommunicationModelTests
         var model = context.GetService<IDesignTimeModel>().Model;
         var seeded = model.FindEntityType(typeof(Communication))!.GetSeedData().ToList();
 
-        Assert.Equal(ClientPulseDbContext.SeedCommunications.Count, seeded.Count);
+        Assert.Equal(DemoSeedData.Communications.Count, seeded.Count);
     }
 
     [Fact]
     public void SeedCommunications_AreValidAndBelowGeneratedIdRange()
     {
-        var communications = ClientPulseDbContext.SeedCommunications;
-        var clientIds = ClientPulseDbContext.SeedClients.Select(c => c.Id).ToHashSet();
+        var communications = DemoSeedData.Communications;
+        var clientIds = DemoSeedData.Clients.Select(c => c.Id).ToHashSet();
 
         Assert.Equal(communications.Count, communications.Select(c => c.Id).Distinct().Count());
         Assert.All(communications, c =>
         {
-            Assert.InRange(c.Id, 1, ClientPulseDbContext.FirstGeneratedCommunicationId - 1);
+            Assert.InRange(c.Id, 1, DemoSeedData.FirstGeneratedCommunicationId - 1);
             Assert.Contains(c.ClientId, clientIds);
             Assert.True(Enum.IsDefined(c.Type));
             Assert.Equal(TimeSpan.Zero, c.OccurredAt.Offset);

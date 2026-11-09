@@ -23,14 +23,14 @@ public class ClientSeedDataTests
         var model = context.GetService<IDesignTimeModel>().Model;
         var seeded = model.FindEntityType(typeof(Client))!.GetSeedData().ToList();
 
-        Assert.Equal(ClientPulseDbContext.SeedClients.Count, seeded.Count);
+        Assert.Equal(DemoSeedData.Clients.Count, seeded.Count);
         Assert.NotEmpty(seeded);
     }
 
     [Fact]
     public void SeedClients_HaveUniqueIdsAndRequiredValues()
     {
-        var clients = ClientPulseDbContext.SeedClients;
+        var clients = DemoSeedData.Clients;
 
         Assert.Equal(clients.Count, clients.Select(c => c.Id).Distinct().Count());
         Assert.All(clients, client =>

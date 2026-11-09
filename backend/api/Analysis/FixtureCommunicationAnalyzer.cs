@@ -16,7 +16,7 @@ public class FixtureCommunicationAnalyzer : ICommunicationAnalyzer
     private static readonly IReadOnlyDictionary<string, FixtureScenario> ScenariosByFingerprint =
         FixtureScenarios.All.ToDictionary(scenario => InputFingerprint.Compute(
             scenario.CommunicationSubjects.Select(subject =>
-                ClientPulseDbContext.SeedCommunications.Single(seed => seed.Subject == subject))));
+                DemoSeedData.Communications.Single(seed => seed.Subject == subject))));
 
     public Task<AnalyzerOutcome> AnalyzeAsync(AnalysisRequest request, CancellationToken cancellationToken)
     {

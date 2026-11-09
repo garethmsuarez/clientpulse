@@ -9,7 +9,7 @@ public class FixtureScenariosTests
     [Fact]
     public void EverySeededClientScenarioHasExactlyOneFixture()
     {
-        var seedSubjectsByClient = ClientPulseDbContext.SeedCommunications
+        var seedSubjectsByClient = DemoSeedData.Communications
             .GroupBy(c => c.ClientId)
             .Select(g => g.Select(c => c.Subject).Order().ToList())
             .ToList();
@@ -24,7 +24,7 @@ public class FixtureScenariosTests
     [Fact]
     public void SeedSubjectsAreUniqueSoFixturesCanReferenceThem()
     {
-        var subjects = ClientPulseDbContext.SeedCommunications.Select(c => c.Subject).ToList();
+        var subjects = DemoSeedData.Communications.Select(c => c.Subject).ToList();
 
         Assert.Equal(subjects.Count, subjects.Distinct().Count());
     }

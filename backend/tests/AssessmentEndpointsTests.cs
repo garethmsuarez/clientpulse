@@ -94,7 +94,7 @@ public class AssessmentEndpointsTests(ApiFactory factory)
         Assert.NotEmpty(evidence);
         Assert.All(evidence, item =>
         {
-            Assert.True(item.CommunicationId >= ClientPulseDbContext.FirstGeneratedCommunicationId,
+            Assert.True(item.CommunicationId >= DemoSeedData.FirstGeneratedCommunicationId,
                 "Evidence should point at this client's copies, not the seed rows.");
             var communication = byId[item.CommunicationId];
             Assert.Equal(communication.Subject, item.Subject);

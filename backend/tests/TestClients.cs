@@ -30,7 +30,7 @@ public static class TestClients
         if (scenario is not null)
         {
             db.Communications.AddRange(scenario.CommunicationSubjects
-                .Select(subject => ClientPulseDbContext.SeedCommunications.Single(c => c.Subject == subject))
+                .Select(subject => DemoSeedData.Communications.Single(c => c.Subject == subject))
                 .Select(seed => new Communication
                 {
                     ClientId = client.Id,
